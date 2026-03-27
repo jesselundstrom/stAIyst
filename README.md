@@ -42,3 +42,11 @@ Notes:
 - `RECOMMENDATION_AI_PROVIDER` defaults to `anthropic`.
 - These variables are server-only; do not prefix them with `NEXT_PUBLIC_`.
 - If the selected provider is missing credentials, the app falls back to mock recommendations.
+
+## Dialogue recommendations
+
+- `POST /api/recommend` remains the existing structured recommendation endpoint.
+- `POST /api/recommend-dialogue` returns a visible stylist conversation plus the same structured recommendation payload.
+- If both `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` are configured, the dialogue can show two turns.
+- If only one dialogue provider is available, the UI shows a single stylist turn before the recommendations.
+- If `USE_MOCK_RECOMMENDATIONS=true`, the dialogue uses canned mock turns and the recommendation flow stays mocked.

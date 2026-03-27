@@ -1,0 +1,97 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils/cn";
+import type { DialogueTurn } from "@/types";
+
+interface StyleDialogueProps {
+  turns: DialogueTurn[];
+  onComplete: () => void;
+}
+
+const COMPLETE_DELAY_MS = 2800;
+const SECOND_TURN_DELAY_MS = 1800;
+const SINGLE_TURN_COMPLETE_DELAY_MS = 1600;
+const FIRST_TURN_DELAY_MS = 400;
+
+export function StyleDialogue({ turns, onComplete }: StyleDialogueProps) {
+  const [revealedCount, setRevealedCount] = useState(0);
+
+  useEffect(() => {
+    const timers: ReturnType<typeof setTimeout>[] = [];
+
+    timers.push(
+      setTimeout(() => {
+        setRevealedCount(1);
+      }, FIRST_TURN_DELAY_MS)
+    );
+
+    if (turns.length > 1) {
+      timers.push(
+        setTimeout(() => {
+          setRevealedCount(2);
+        }, SECOND_TURN_DELAY_MS)
+      );
+
+      timers.push(
+        setTimeout(() => {
+          onComplete();
+        }, COMPLETE_DELAY_MS)
+      );
+    } else {
+      timers.push(
+        setTimeout(() => {
+          onComplete();
+        }, SINGLE_TURN_COMPLETE_DELAY_MS)
+      );
+    }
+
+    return () => {
+      timers.forEach((timer) => clearTimeout(timer));
+    };
+  }, [onComplete, turns.length]);
+
+  return (
+    <div className="rounded-2xl border border-neutral-100 bg-white p-6 shadow-sm">
+      <div className="flex flex-col gap-4">
+        {turns.map((turn, index) => {
+          const isClaude = turn.participant === "claude";
+          const isVisible = revealedCount > index;
+
+          return (
+            <div
+              key={`${turn.participant}-${index}`}
+              className={cn(
+                "flex transition-all duration-500",
+                isClaude ? "justify-start" : "justify-end",
+                isVisible ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0"
+              )}
+            >
+              <div
+                className={cn(
+                  "flex max-w-[85%] items-start gap-3",
+                  isClaude ? "flex-row" : "flex-row-reverse text-right"
+                )}
+              >
+                <div
+                  className={cn(
+                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
+                    isClaude
+                      ? "bg-neutral-900 text-white"
+                      : "bg-neutral-200 text-neutral-700"
+                  )}
+                >
+                  {isClaude ? "C" : "G"}
+                </div>
+
+                <div className="rounded-2xl bg-neutral-50 px-4 py-3 text-sm leading-relaxed text-neutral-700">
+                  {turn.text}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

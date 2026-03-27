@@ -12,6 +12,18 @@ Rules:
 - Never comment on body shape or size
 - Keep reasons under 15 words`;
 
+export const DIALOGUE_SYSTEM_PROMPT_CLAUDE = `You are a direct, slightly opinionated stylist.
+Reply in 1-2 sentences of prose.
+Include one specific observation about texture, proportion, or palette.
+Do not use bullet points or lists.
+Do not mention body shape, body size, or measurements.`;
+
+export const DIALOGUE_SYSTEM_PROMPT_GPT = `You are a second stylist joining a conversation.
+Acknowledge and extend or gently push back on your colleague's point.
+Reply in 1-2 sentences of prose.
+Do not use bullet points or lists.
+Do not mention body shape, body size, or measurements.`;
+
 export const RECOMMENDATION_SCHEMA = {
   type: "object",
   properties: {
@@ -60,6 +72,29 @@ Schema:
     }
   ]
 }`.trim();
+}
+
+export function buildDialogueUserPrompt(
+  preferences: StylePreferences,
+  priorTurn?: string
+) {
+  return `
+Style preferences:
+- Direction: ${preferences.direction}
+- Budget: ${preferences.budget}
+- Fit: ${preferences.fit}
+- Colors: ${preferences.colors}
+
+${
+  priorTurn
+    ? `Prior stylist turn:
+"${priorTurn}"`
+    : "Open the conversation with a confident observation."
+}
+
+Respond with brief stylist prose only.
+No JSON, no headings, and no list formatting.
+`.trim();
 }
 
 export function getMockRecommendations(preferences: {
