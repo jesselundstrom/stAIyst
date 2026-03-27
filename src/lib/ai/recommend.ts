@@ -1,8 +1,86 @@
-import Anthropic from "@anthropic-ai/sdk";
+import Anthropic, { APIError } from "@anthropic-ai/sdk";
 import type { StylePreferences, RecommendationResponse } from "@/types";
 import { RECOMMENDATION_SYSTEM_PROMPT, getMockRecommendations } from "./schemas";
 
-const USE_MOCK = process.env.USE_MOCK_RECOMMENDATIONS === "true" || !process.env.ANTHROPIC_API_KEY;
+const USE_MOCK =
+  process.env.USE_MOCK_RECOMMENDATIONS === "true" || !process.env.ANTHROPIC_API_KEY;
+const RECOMMENDATION_MODEL =
+  process.env.ANTHROPIC_RECOMMENDATION_MODEL ?? "claude-sonnet-4-6";
+const RECOMMENDATION_MAX_RETRIES = 4;
+
+type AnthropicErrorPayload = {
+  type?: string;
+  request_id?: string;
+  error?: {
+    type?: string;
+    message?: string;
+  };
+};
+
+export class RecommendationServiceError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly retryable = false,
+    public readonly requestId?: string
+  ) {
+    super(message);
+    this.name = "RecommendationServiceError";
+  }
+}
+
+export function isRecommendationServiceError(
+  error: unknown
+): error is RecommendationServiceError {
+  return error instanceof RecommendationServiceError;
+}
+
+function getImageMediaType(
+  frontImageBase64: string
+): "image/jpeg" | "image/png" | "image/webp" {
+  const mediaType = frontImageBase64
+    .match(/^data:(image\/[a-z0-9.+-]+);base64,/i)?.[1]
+    ?.toLowerCase();
+
+  if (mediaType === "image/png" || mediaType === "image/webp") {
+    return mediaType;
+  }
+
+  return "image/jpeg";
+}
+
+function toRecommendationServiceError(
+  error: APIError<number | undefined, Headers | undefined, object | undefined>
+) {
+  const payload = error.error as AnthropicErrorPayload | undefined;
+  const providerErrorType = payload?.error?.type ?? payload?.type;
+  const requestId = error.requestID ?? payload?.request_id ?? undefined;
+
+  if (error.status === 529 || providerErrorType === "overloaded_error") {
+    return new RecommendationServiceError(
+      "Picture analysis is temporarily overloaded. Please try again in a moment.",
+      503,
+      true,
+      requestId
+    );
+  }
+
+  if (error.status === 429 || providerErrorType === "rate_limit_error") {
+    return new RecommendationServiceError(
+      "Picture analysis is rate limited right now. Please retry shortly.",
+      429,
+      true,
+      requestId
+    );
+  }
+
+  return new RecommendationServiceError(
+    "Failed to analyze the uploaded picture.",
+    502,
+    false,
+    requestId
+  );
+}
 
 export async function generateRecommendations(
   preferences: StylePreferences,
@@ -14,7 +92,10 @@ export async function generateRecommendations(
     return getMockRecommendations(preferences);
   }
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const client = new Anthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY,
+    maxRetries: RECOMMENDATION_MAX_RETRIES,
+  });
 
   const userPrompt = `
 Style preferences:
@@ -24,11 +105,11 @@ Style preferences:
 - Colors: ${preferences.colors}
 
 Generate 3 clothing recommendations (overshirt/layer, trousers/bottoms, shoes).
-Return JSON only — no commentary outside the JSON block.
+Return JSON only - no commentary outside the JSON block.
 
 Schema:
 {
-  "styleSummary": "string (1–2 sentences)",
+  "styleSummary": "string (1-2 sentences)",
   "recommendations": [
     {
       "category": "string",
@@ -48,7 +129,7 @@ Schema:
       ? frontImageBase64.split(",")[1]
       : frontImageBase64;
 
-    const mediaType = frontImageBase64.startsWith("data:image/png") ? "image/png" : "image/jpeg";
+    const mediaType = getImageMediaType(frontImageBase64);
 
     messages.push({
       role: "user",
@@ -64,16 +145,32 @@ Schema:
     messages.push({ role: "user", content: userPrompt });
   }
 
-  const response = await client.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 1024,
-    system: RECOMMENDATION_SYSTEM_PROMPT,
-    messages,
-  });
+  let response;
+
+  try {
+    response = await client.messages.create({
+      model: RECOMMENDATION_MODEL,
+      max_tokens: 1024,
+      system: RECOMMENDATION_SYSTEM_PROMPT,
+      messages,
+    });
+  } catch (error) {
+    if (error instanceof APIError) {
+      const serviceError = toRecommendationServiceError(error);
+      console.warn("[recommend] Anthropic request failed", {
+        status: error.status,
+        requestId: serviceError.requestId,
+        retryable: serviceError.retryable,
+      });
+      throw serviceError;
+    }
+
+    throw error;
+  }
 
   const text = response.content
-    .filter((b) => b.type === "text")
-    .map((b) => (b as { type: "text"; text: string }).text)
+    .filter((block) => block.type === "text")
+    .map((block) => (block as { type: "text"; text: string }).text)
     .join("");
 
   // Extract JSON from response
