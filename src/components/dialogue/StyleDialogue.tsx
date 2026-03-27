@@ -9,13 +9,14 @@ interface StyleDialogueProps {
   onComplete: () => void;
 }
 
-const COMPLETE_DELAY_MS = 2800;
-const SECOND_TURN_DELAY_MS = 1800;
-const SINGLE_TURN_COMPLETE_DELAY_MS = 1600;
-const FIRST_TURN_DELAY_MS = 400;
+const COMPLETE_DELAY_MS = 4100;
+const SECOND_TURN_DELAY_MS = 2400;
+const SINGLE_TURN_COMPLETE_DELAY_MS = 2600;
+const FIRST_TURN_DELAY_MS = 700;
 
 export function StyleDialogue({ turns, onComplete }: StyleDialogueProps) {
   const [revealedCount, setRevealedCount] = useState(0);
+  const leadParticipant = turns[0]?.participant === "gpt" ? "GPT" : "Claude";
 
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
@@ -54,6 +55,20 @@ export function StyleDialogue({ turns, onComplete }: StyleDialogueProps) {
   return (
     <div className="rounded-2xl border border-neutral-100 bg-white p-6 shadow-sm">
       <div className="flex flex-col gap-4">
+        <div
+          className={cn(
+            "overflow-hidden transition-all duration-700 ease-out",
+            revealedCount === 0 ? "max-h-10 opacity-100" : "max-h-0 opacity-0"
+          )}
+        >
+          <div className="flex items-center gap-3">
+            <div className="h-2 w-2 animate-pulse rounded-full bg-neutral-900" />
+            <p className="text-sm font-medium text-neutral-700">
+              {leadParticipant} is reviewing your look...
+            </p>
+          </div>
+        </div>
+
         {turns.map((turn, index) => {
           const isClaude = turn.participant === "claude";
           const isVisible = revealedCount > index;
@@ -62,9 +77,11 @@ export function StyleDialogue({ turns, onComplete }: StyleDialogueProps) {
             <div
               key={`${turn.participant}-${index}`}
               className={cn(
-                "flex transition-all duration-500",
+                "flex transition-all duration-700 ease-out",
                 isClaude ? "justify-start" : "justify-end",
-                isVisible ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0"
+                isVisible
+                  ? "translate-y-0 scale-100 opacity-100 blur-0"
+                  : "translate-y-3 scale-[0.985] opacity-0 blur-[2px]"
               )}
             >
               <div
