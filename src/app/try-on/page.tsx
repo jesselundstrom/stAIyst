@@ -129,6 +129,7 @@ export default function TryOnPage() {
                     fill
                     className="object-cover"
                     sizes="(max-width: 1024px) 50vw, 33vw"
+                    style={{ animation: "fadeIn 0.4s ease-out both" }}
                   />
                 )}
 

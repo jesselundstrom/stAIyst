@@ -63,8 +63,13 @@ export function RecommendationSlot({
         <p className="text-sm text-neutral-400">No matching products found.</p>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} onTryOn={onTryOn} />
+          {products.map((product, i) => (
+            <div
+              key={product.id}
+              style={{ animation: "fadeUp 0.4s ease-out both", animationDelay: `${i * 60}ms` }}
+            >
+              <ProductCard product={product} onTryOn={onTryOn} />
+            </div>
           ))}
         </div>
       )}

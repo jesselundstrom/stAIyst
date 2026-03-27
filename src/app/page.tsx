@@ -7,21 +7,32 @@ export default function HomePage() {
       {/* Hero */}
       <section className="mx-auto w-full max-w-5xl px-6 py-24 md:py-36">
         <div className="max-w-xl">
-          <p className="mb-4 text-xs font-medium uppercase tracking-widest text-neutral-400">
+          <p
+            className="mb-4 text-xs font-medium uppercase tracking-widest text-neutral-400"
+            style={{ animation: "fadeUp 0.48s ease-out both" }}
+          >
             Personal styling, powered by AI
           </p>
-          <h1 className="font-display mb-6 text-5xl font-medium leading-[1.1] tracking-tight text-neutral-900 md:text-6xl">
+          <h1
+            className="font-display mb-6 text-5xl font-medium leading-[1.1] tracking-tight text-neutral-900 md:text-6xl"
+            style={{ animation: "fadeUp 0.48s ease-out both", animationDelay: "100ms" }}
+          >
             A cleaner direction
             <br />
             <em>for your wardrobe.</em>
           </h1>
-          <p className="mb-10 text-base leading-relaxed text-neutral-500">
+          <p
+            className="mb-10 text-base leading-relaxed text-neutral-500"
+            style={{ animation: "fadeUp 0.48s ease-out both", animationDelay: "200ms" }}
+          >
             Upload a photo, tell us your style preferences, and receive targeted
             clothing recommendations — with real products you can try on and buy.
           </p>
-          <Link href="/upload">
-            <Button size="lg">Begin</Button>
-          </Link>
+          <div style={{ animation: "fadeUp 0.48s ease-out both", animationDelay: "320ms" }}>
+            <Link href="/upload">
+              <Button size="lg">Begin</Button>
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -32,8 +43,12 @@ export default function HomePage() {
             How it works
           </p>
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            {STEPS.map((step) => (
-              <div key={step.number} className="flex flex-col gap-3">
+            {STEPS.map((step, i) => (
+              <div
+                key={step.number}
+                className="flex flex-col gap-3"
+                style={{ animation: "fadeUp 0.48s ease-out both", animationDelay: `${i * 60}ms` }}
+              >
                 <span className="text-2xl font-light text-neutral-300">{step.number}</span>
                 <h3 className="text-sm font-semibold text-neutral-900">{step.title}</h3>
                 <p className="text-sm leading-relaxed text-neutral-500">{step.description}</p>
