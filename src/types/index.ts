@@ -4,6 +4,7 @@ export type StyleDirection = "minimal" | "smart-casual" | "classic" | "streetwea
 export type Budget = "low" | "medium" | "premium";
 export type FitPreference = "relaxed" | "regular" | "slim";
 export type ColorPreference = "neutral" | "earthy" | "monochrome" | "mixed";
+export type OccasionMode = "work" | "weekend" | "going-out";
 
 export interface StylePreferences {
   direction: StyleDirection;
@@ -86,6 +87,7 @@ export interface TryOnResult {
 export interface AppSession {
   images: UploadedImages;
   preferences: StylePreferences | null;
+  occasion: OccasionMode | null;
   recommendations: RecommendationResponse | null;
   selectedProduct: NormalizedProduct | null;
   tryOnResult: TryOnResult | null;

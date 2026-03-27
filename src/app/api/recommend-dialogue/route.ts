@@ -3,20 +3,25 @@ import { generateDialogue } from "@/lib/ai/dialogue";
 import {
   isRecommendationServiceError,
 } from "@/lib/ai/recommend";
-import type { StylePreferences } from "@/types";
+import type { OccasionMode, StylePreferences } from "@/types";
 
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as {
       preferences: StylePreferences;
       frontImageBase64?: string;
+      occasion?: OccasionMode;
     };
 
     if (!body.preferences) {
       return NextResponse.json({ error: "Missing preferences" }, { status: 400 });
     }
 
-    const result = await generateDialogue(body.preferences, body.frontImageBase64);
+    const result = await generateDialogue(
+      body.preferences,
+      body.frontImageBase64,
+      body.occasion
+    );
 
     return NextResponse.json(result);
   } catch (err) {

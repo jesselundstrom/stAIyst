@@ -1,4 +1,18 @@
-import type { RecommendationResponse, StylePreferences } from "@/types";
+import type { OccasionMode, RecommendationResponse, StylePreferences } from "@/types";
+
+function formatOccasionContext(occasion: string) {
+  return occasion.replace(/-/g, " ");
+}
+
+function buildOccasionContextLine(occasion?: string) {
+  if (!occasion) {
+    return "";
+  }
+
+  return `Styling context: The user is dressing for ${formatOccasionContext(
+    occasion
+  )}. Tailor recommendations specifically for this setting.\n\n`;
+}
 
 export const RECOMMENDATION_SYSTEM_PROMPT = `You are a precise, practical styling assistant.
 Your role is to analyze a person's current look and suggest specific clothing improvements.
@@ -51,8 +65,12 @@ export const RECOMMENDATION_SCHEMA = {
   additionalProperties: false,
 } as const;
 
-export function buildRecommendationUserPrompt(preferences: StylePreferences) {
+export function buildRecommendationUserPrompt(
+  preferences: StylePreferences,
+  occasion?: OccasionMode
+) {
   return `
+${buildOccasionContextLine(occasion)}\
 Style preferences:
 - Direction: ${preferences.direction}
 - Budget: ${preferences.budget}
@@ -79,9 +97,11 @@ Schema:
 
 export function buildDialogueUserPrompt(
   preferences: StylePreferences,
-  priorTurn?: string
+  priorTurn?: string,
+  occasion?: OccasionMode
 ) {
   return `
+${buildOccasionContextLine(occasion)}\
 Style preferences:
 - Direction: ${preferences.direction}
 - Budget: ${preferences.budget}
@@ -100,12 +120,25 @@ No JSON, no headings, and no list formatting.
 `.trim();
 }
 
+function buildOccasionSummaryPrefix(occasion?: OccasionMode) {
+  switch (occasion) {
+    case "work":
+      return "For work, ";
+    case "weekend":
+      return "For the weekend, ";
+    case "going-out":
+      return "For going out, ";
+    default:
+      return "";
+  }
+}
+
 export function getMockRecommendations(preferences: {
   direction: string;
   budget: string;
   fit: string;
   colors: string;
-}): RecommendationResponse {
+}, occasion?: OccasionMode): RecommendationResponse {
   const colorMap: Record<string, string[]> = {
     neutral: ["white", "off-white", "light grey"],
     earthy: ["camel", "terracotta", "olive"],
@@ -126,8 +159,10 @@ export function getMockRecommendations(preferences: {
 
   return {
     styleSummary:
-      summaryMap[preferences.direction] ??
-      "A solid starting point with clear room for improvement.",
+      `${buildOccasionSummaryPrefix(occasion)}${
+        summaryMap[preferences.direction] ??
+        "A solid starting point with clear room for improvement."
+      }`,
     recommendations: [
       {
         category: "overshirt",

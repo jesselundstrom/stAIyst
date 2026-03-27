@@ -3,6 +3,7 @@ import type {
   DialogueParticipant,
   DialogueResponse,
   DialogueTurn,
+  OccasionMode,
   StylePreferences,
 } from "@/types";
 import {
@@ -98,7 +99,10 @@ function extractOpenAIText(payload: OpenAIResponsePayload) {
     .join("");
 }
 
-function getMockDialogueTurns(preferences: StylePreferences): DialogueTurn[] {
+function getMockDialogueTurns(
+  preferences: StylePreferences,
+  occasion?: OccasionMode
+): DialogueTurn[] {
   const mockTurnsByDirection: Record<StylePreferences["direction"], DialogueTurn[]> = {
     minimal: [
       {
@@ -142,19 +146,37 @@ function getMockDialogueTurns(preferences: StylePreferences): DialogueTurn[] {
     ],
   };
 
-  return mockTurnsByDirection[preferences.direction];
+  const turns = mockTurnsByDirection[preferences.direction];
+
+  if (!occasion) {
+    return turns;
+  }
+
+  const occasionOpeners: Record<OccasionMode, string> = {
+    work: "For work, ",
+    weekend: "For the weekend, ",
+    "going-out": "For going out, ",
+  };
+
+  return turns.map((turn, index) => ({
+    ...turn,
+    text: `${occasionOpeners[occasion]}${
+      index === 0 ? turn.text.charAt(0).toLowerCase() + turn.text.slice(1) : turn.text
+    }`,
+  }));
 }
 
 export async function generateClaudeDialogueTurn(
   preferences: StylePreferences,
-  frontImageBase64?: string
+  frontImageBase64?: string,
+  occasion?: OccasionMode
 ): Promise<DialogueTurn> {
   const client = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY,
     maxRetries: 2,
   });
 
-  const userPrompt = buildDialogueUserPrompt(preferences);
+  const userPrompt = buildDialogueUserPrompt(preferences, undefined, occasion);
   const messages: Anthropic.MessageParam[] = [];
 
   if (frontImageBase64) {
@@ -216,7 +238,8 @@ export async function generateClaudeDialogueTurn(
 export async function generateGPTDialogueTurn(
   preferences: StylePreferences,
   frontImageBase64?: string,
-  priorTurn?: string
+  priorTurn?: string,
+  occasion?: OccasionMode
 ): Promise<DialogueTurn> {
   const openAiApiKey = process.env.OPENAI_API_KEY;
 
@@ -227,7 +250,7 @@ export async function generateGPTDialogueTurn(
   const userContent: Array<Record<string, string>> = [
     {
       type: "input_text",
-      text: buildDialogueUserPrompt(preferences, priorTurn),
+      text: buildDialogueUserPrompt(preferences, priorTurn, occasion),
     },
   ];
 
@@ -285,23 +308,29 @@ async function generateSingleDialogueTurn(
   provider: AvailableDialogueProvider,
   preferences: StylePreferences,
   frontImageBase64?: string,
-  priorTurn?: string
+  priorTurn?: string,
+  occasion?: OccasionMode
 ) {
   if (provider === "claude") {
-    return generateClaudeDialogueTurn(preferences, frontImageBase64);
+    return generateClaudeDialogueTurn(preferences, frontImageBase64, occasion);
   }
 
-  return generateGPTDialogueTurn(preferences, frontImageBase64, priorTurn);
+  return generateGPTDialogueTurn(preferences, frontImageBase64, priorTurn, occasion);
 }
 
 export async function generateDialogue(
   preferences: StylePreferences,
-  frontImageBase64?: string
+  frontImageBase64?: string,
+  occasion?: OccasionMode
 ): Promise<DialogueResponse> {
   if (USE_MOCK) {
     return {
-      turns: getMockDialogueTurns(preferences).map(normalizeDialogueTurn),
-      recommendation: await generateRecommendations(preferences, frontImageBase64),
+      turns: getMockDialogueTurns(preferences, occasion).map(normalizeDialogueTurn),
+      recommendation: await generateRecommendations(
+        preferences,
+        frontImageBase64,
+        occasion
+      ),
     };
   }
 
@@ -310,14 +339,19 @@ export async function generateDialogue(
 
   if (availableProviders.length >= 2 && availableProviders.includes("claude")) {
     try {
-      const claudeTurn = await generateClaudeDialogueTurn(preferences, frontImageBase64);
+      const claudeTurn = await generateClaudeDialogueTurn(
+        preferences,
+        frontImageBase64,
+        occasion
+      );
       turns.push(claudeTurn);
 
       try {
         const gptTurn = await generateGPTDialogueTurn(
           preferences,
           frontImageBase64,
-          claudeTurn.text
+          claudeTurn.text,
+          occasion
         );
         turns.push(gptTurn);
       } catch (error) {
@@ -328,7 +362,9 @@ export async function generateDialogue(
 
       if (availableProviders.includes("gpt")) {
         try {
-          turns.push(await generateGPTDialogueTurn(preferences, frontImageBase64));
+          turns.push(
+            await generateGPTDialogueTurn(preferences, frontImageBase64, undefined, occasion)
+          );
         } catch (gptError) {
           console.warn("[dialogue] GPT solo turn also failed", gptError);
         }
@@ -340,7 +376,9 @@ export async function generateDialogue(
         await generateSingleDialogueTurn(
           availableProviders[0],
           preferences,
-          frontImageBase64
+          frontImageBase64,
+          undefined,
+          occasion
         )
       );
     } catch (error) {
@@ -348,7 +386,11 @@ export async function generateDialogue(
     }
   }
 
-  const recommendation = await generateRecommendations(preferences, frontImageBase64);
+  const recommendation = await generateRecommendations(
+    preferences,
+    frontImageBase64,
+    occasion
+  );
 
   return {
     turns: turns.length > 0 ? turns.map(normalizeDialogueTurn) : null,

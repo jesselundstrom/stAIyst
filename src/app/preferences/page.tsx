@@ -1,20 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PageShell } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils/cn";
 import { useSessionStore } from "@/lib/session/store";
 import type {
-  StyleDirection,
   Budget,
-  FitPreference,
   ColorPreference,
+  FitPreference,
+  OccasionMode,
+  StyleDirection,
   StylePreferences,
 } from "@/types";
 
 type Option<T> = { value: T; label: string; description: string };
+type PreferencesMode = "occasion" | "manual";
 
 const STYLE_OPTIONS: Option<StyleDirection>[] = [
   { value: "minimal", label: "Minimal", description: "Clean, understated, intentional" },
@@ -24,9 +26,9 @@ const STYLE_OPTIONS: Option<StyleDirection>[] = [
 ];
 
 const BUDGET_OPTIONS: Option<Budget>[] = [
-  { value: "low", label: "Low", description: "Under £60 per piece" },
-  { value: "medium", label: "Medium", description: "£60–£200 per piece" },
-  { value: "premium", label: "Premium", description: "£200+ per piece" },
+  { value: "low", label: "Low", description: "Everyday price point" },
+  { value: "medium", label: "Medium", description: "Mid-range investment" },
+  { value: "premium", label: "Premium", description: "High-end, considered pieces" },
 ];
 
 const FIT_OPTIONS: Option<FitPreference>[] = [
@@ -41,6 +43,43 @@ const COLOR_OPTIONS: Option<ColorPreference>[] = [
   { value: "monochrome", label: "Monochrome", description: "Black, white, charcoal" },
   { value: "mixed", label: "Mixed", description: "Open to colour" },
 ];
+
+const OCCASION_OPTIONS: Array<{
+  value: OccasionMode;
+  label: string;
+  description: string;
+  featured?: boolean;
+}> = [
+  { value: "work", label: "Work", description: "Sharp, polished, professional" },
+  { value: "weekend", label: "Weekend", description: "Relaxed, effortless, easy" },
+  {
+    value: "going-out",
+    label: "Going out",
+    description: "Elevated, refined, occasion-ready",
+    featured: true,
+  },
+];
+
+const OCCASION_PREFERENCES: Record<OccasionMode, StylePreferences> = {
+  work: {
+    direction: "classic",
+    budget: "medium",
+    fit: "regular",
+    colors: "neutral",
+  },
+  weekend: {
+    direction: "smart-casual",
+    budget: "low",
+    fit: "relaxed",
+    colors: "earthy",
+  },
+  "going-out": {
+    direction: "classic",
+    budget: "premium",
+    fit: "slim",
+    colors: "monochrome",
+  },
+};
 
 function OptionGrid<T extends string>({
   label,
@@ -85,15 +124,91 @@ function OptionGrid<T extends string>({
   );
 }
 
+function OccasionCard({
+  label,
+  description,
+  featured = false,
+  selected,
+  disabled,
+  onClick,
+}: {
+  label: string;
+  description: string;
+  featured?: boolean;
+  selected: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-pressed={selected}
+      className={cn(
+        "group flex min-h-[172px] flex-col justify-between rounded-[1.75rem] border p-8 text-left transition-all duration-300",
+        selected
+          ? "border-neutral-900 bg-neutral-900 text-white shadow-[0_20px_40px_rgba(23,23,23,0.16)]"
+          : "border-neutral-200 bg-white text-neutral-900 shadow-sm hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-md",
+        disabled && !selected ? "cursor-not-allowed opacity-80" : ""
+      )}
+    >
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="font-display text-3xl font-medium tracking-tight">{label}</h2>
+          {featured ? (
+            <span
+              className={cn(
+                "h-px w-12 transition-opacity duration-300",
+                selected ? "bg-white/70" : "bg-[var(--gold)]"
+              )}
+            />
+          ) : null}
+        </div>
+        <p
+          className={cn(
+            "max-w-sm text-sm leading-relaxed",
+            selected ? "text-neutral-300" : "text-neutral-500"
+          )}
+        >
+          {description}
+        </p>
+      </div>
+
+      <span
+        className={cn(
+          "text-xs font-medium uppercase tracking-[0.24em]",
+          selected ? "text-neutral-300" : "text-neutral-400"
+        )}
+      >
+        AI will build the full direction
+      </span>
+    </button>
+  );
+}
+
 export default function PreferencesPage() {
   const router = useRouter();
-  const { preferences, setPreferences, clearGeneratedState, images, hasHydrated } =
-    useSessionStore();
+  const navigationTimeoutRef = useRef<number | null>(null);
+  const {
+    preferences,
+    occasion,
+    setPreferences,
+    setOccasion,
+    clearGeneratedState,
+    images,
+    hasHydrated,
+  } = useSessionStore();
 
-  const [direction, setDirection] = useState<StyleDirection | null>(null);
-  const [budget, setBudget] = useState<Budget | null>(null);
-  const [fit, setFit] = useState<FitPreference | null>(null);
-  const [colors, setColors] = useState<ColorPreference | null>(null);
+  const [modeOverride, setModeOverride] = useState<PreferencesMode | null>(null);
+  const [isNavigating, setIsNavigating] = useState(false);
+  const [direction, setDirection] = useState<StyleDirection | null | undefined>(undefined);
+  const [budget, setBudget] = useState<Budget | null | undefined>(undefined);
+  const [fit, setFit] = useState<FitPreference | null | undefined>(undefined);
+  const [colors, setColors] = useState<ColorPreference | null | undefined>(undefined);
+  const [selectedOccasion, setSelectedOccasion] = useState<
+    OccasionMode | null | undefined
+  >(undefined);
 
   useEffect(() => {
     if (!hasHydrated) {
@@ -105,70 +220,175 @@ export default function PreferencesPage() {
     }
   }, [hasHydrated, images.front, router]);
 
-  if (!hasHydrated) return null;
+  useEffect(() => {
+    return () => {
+      if (navigationTimeoutRef.current !== null) {
+        window.clearTimeout(navigationTimeoutRef.current);
+      }
+    };
+  }, []);
 
+  if (!hasHydrated || !images.front) {
+    return null;
+  }
+
+  const mode = modeOverride ?? (occasion ? "occasion" : preferences ? "manual" : "occasion");
   const selectedDirection = direction ?? preferences?.direction ?? null;
   const selectedBudget = budget ?? preferences?.budget ?? null;
   const selectedFit = fit ?? preferences?.fit ?? null;
   const selectedColors = colors ?? preferences?.colors ?? null;
-  const canContinue =
-    selectedDirection && selectedBudget && selectedFit && selectedColors;
+  const activeOccasion = selectedOccasion ?? occasion ?? null;
+  const canContinue = Boolean(
+    selectedDirection && selectedBudget && selectedFit && selectedColors
+  );
 
-  function handleContinue() {
-    if (!canContinue) return;
+  function navigateToReview() {
+    navigationTimeoutRef.current = window.setTimeout(() => {
+      router.push("/stylist-review");
+    }, 300);
+  }
+
+  function handleOccasionSelect(nextOccasion: OccasionMode) {
+    if (isNavigating) {
+      return;
+    }
+
+    const mappedPreferences = OCCASION_PREFERENCES[nextOccasion];
+
     clearGeneratedState();
+    setSelectedOccasion(nextOccasion);
+    setDirection(mappedPreferences.direction);
+    setBudget(mappedPreferences.budget);
+    setFit(mappedPreferences.fit);
+    setColors(mappedPreferences.colors);
+    setPreferences(mappedPreferences);
+    setOccasion(nextOccasion);
+    setModeOverride("occasion");
+    setIsNavigating(true);
+    navigateToReview();
+  }
+
+  function handleManualContinue() {
+    if (!canContinue || isNavigating) {
+      return;
+    }
+
+    clearGeneratedState();
+    setSelectedOccasion(null);
     setPreferences({
       direction: selectedDirection!,
       budget: selectedBudget!,
       fit: selectedFit!,
       colors: selectedColors!,
-    } satisfies StylePreferences);
-    router.push("/stylist-review");
+    });
+    setOccasion(null);
+    setModeOverride("manual");
+    setIsNavigating(true);
+    navigateToReview();
   }
 
   return (
     <PageShell narrow>
-      <div className="mb-10">
-        <p className="mb-1 text-xs font-medium uppercase tracking-widest text-neutral-400">Step 2</p>
-        <h1 className="mb-3 text-2xl font-semibold tracking-tight text-neutral-900">
-          Style preferences
-        </h1>
-        <p className="text-sm leading-relaxed text-neutral-500">
-          A few quick choices to calibrate your recommendations.
-        </p>
-      </div>
+      <div className="transition-opacity duration-300">
+        {mode === "occasion" ? (
+          <>
+            <div className="mb-10">
+              <p className="mb-1 text-xs font-medium uppercase tracking-widest text-neutral-400">
+                Step 2
+              </p>
+              <h1 className="font-display mb-3 text-4xl font-medium tracking-tight text-neutral-900 sm:text-5xl">
+                What are you dressing for?
+              </h1>
+              <p className="max-w-xl text-sm leading-relaxed text-neutral-500">
+                Pick the occasion and we&apos;ll handle the rest.
+              </p>
+            </div>
 
-      <div className="flex flex-col gap-8">
-        <OptionGrid
-          label="Style direction"
-          options={STYLE_OPTIONS}
-          value={selectedDirection}
-          onChange={setDirection}
-        />
-        <OptionGrid
-          label="Budget per item"
-          options={BUDGET_OPTIONS}
-          value={selectedBudget}
-          onChange={setBudget}
-        />
-        <OptionGrid
-          label="Fit preference"
-          options={FIT_OPTIONS}
-          value={selectedFit}
-          onChange={setFit}
-        />
-        <OptionGrid
-          label="Colour preference"
-          options={COLOR_OPTIONS}
-          value={selectedColors}
-          onChange={setColors}
-        />
-      </div>
+            <div className="flex flex-col gap-4">
+              {OCCASION_OPTIONS.map((option) => (
+                <OccasionCard
+                  key={option.value}
+                  label={option.label}
+                  description={option.description}
+                  featured={option.featured}
+                  selected={activeOccasion === option.value}
+                  disabled={isNavigating}
+                  onClick={() => handleOccasionSelect(option.value)}
+                />
+              ))}
+            </div>
 
-      <div className="mt-10 flex justify-end">
-        <Button size="lg" disabled={!canContinue} onClick={handleContinue}>
-          Get recommendations
-        </Button>
+            <div className="mt-8 flex justify-center">
+              <button
+                type="button"
+                onClick={() => setModeOverride("manual")}
+                disabled={isNavigating}
+                className="text-sm text-neutral-500 transition hover:text-neutral-900 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Or set your own preferences -&gt;
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="mb-10">
+              <button
+                type="button"
+                onClick={() => setModeOverride("occasion")}
+                disabled={isNavigating}
+                className="mb-4 text-sm text-neutral-500 transition hover:text-neutral-900 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                &lt;- Back
+              </button>
+              <p className="mb-1 text-xs font-medium uppercase tracking-widest text-neutral-400">
+                Step 2
+              </p>
+              <h1 className="mb-3 text-2xl font-semibold tracking-tight text-neutral-900">
+                Style preferences
+              </h1>
+              <p className="text-sm leading-relaxed text-neutral-500">
+                A few quick choices to calibrate your recommendations.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-8 transition-opacity duration-300">
+              <OptionGrid
+                label="Style direction"
+                options={STYLE_OPTIONS}
+                value={selectedDirection}
+                onChange={setDirection}
+              />
+              <OptionGrid
+                label="Budget per item"
+                options={BUDGET_OPTIONS}
+                value={selectedBudget}
+                onChange={setBudget}
+              />
+              <OptionGrid
+                label="Fit preference"
+                options={FIT_OPTIONS}
+                value={selectedFit}
+                onChange={setFit}
+              />
+              <OptionGrid
+                label="Colour preference"
+                options={COLOR_OPTIONS}
+                value={selectedColors}
+                onChange={setColors}
+              />
+            </div>
+
+            <div className="mt-10 flex justify-end">
+              <Button
+                size="lg"
+                disabled={!canContinue || isNavigating}
+                onClick={handleManualContinue}
+              >
+                Get recommendations
+              </Button>
+            </div>
+          </>
+        )}
       </div>
     </PageShell>
   );

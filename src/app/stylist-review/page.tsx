@@ -24,6 +24,7 @@ export default function StylistReviewPage() {
   const {
     images,
     preferences,
+    occasion,
     recommendations,
     hasHydrated,
     setRecommendations,
@@ -75,6 +76,7 @@ export default function StylistReviewPage() {
           body: JSON.stringify({
             preferences,
             frontImageBase64: images.front,
+            occasion,
           }),
         });
 
@@ -139,6 +141,7 @@ export default function StylistReviewPage() {
   }, [
     hasHydrated,
     images.front,
+    occasion,
     preferences,
     recommendations,
     retryCount,

@@ -3,13 +3,14 @@ import {
   generateRecommendations,
   isRecommendationServiceError,
 } from "@/lib/ai/recommend";
-import type { StylePreferences } from "@/types";
+import type { OccasionMode, StylePreferences } from "@/types";
 
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as {
       preferences: StylePreferences;
       frontImageBase64?: string;
+      occasion?: OccasionMode;
     };
 
     if (!body.preferences) {
@@ -18,7 +19,8 @@ export async function POST(req: NextRequest) {
 
     const result = await generateRecommendations(
       body.preferences,
-      body.frontImageBase64
+      body.frontImageBase64,
+      body.occasion
     );
 
     return NextResponse.json(result);

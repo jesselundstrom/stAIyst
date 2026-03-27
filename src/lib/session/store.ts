@@ -2,7 +2,13 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { AppSession, StylePreferences, NormalizedProduct, RecommendationResponse } from "@/types";
+import type {
+  AppSession,
+  StylePreferences,
+  NormalizedProduct,
+  RecommendationResponse,
+  OccasionMode,
+} from "@/types";
 import type { TryOnResult } from "@/types";
 
 interface SessionStore extends AppSession {
@@ -10,6 +16,7 @@ interface SessionStore extends AppSession {
   setFrontImage(dataUrl: string): void;
   setBackImage(dataUrl: string | null): void;
   setPreferences(prefs: StylePreferences): void;
+  setOccasion(occasion: OccasionMode | null): void;
   setRecommendations(recs: RecommendationResponse): void;
   clearGeneratedState(): void;
   setSelectedProduct(product: NormalizedProduct | null): void;
@@ -21,6 +28,7 @@ interface SessionStore extends AppSession {
 const INITIAL_STATE: AppSession = {
   images: { front: null, back: null },
   preferences: null,
+  occasion: null,
   recommendations: null,
   selectedProduct: null,
   tryOnResult: null,
@@ -47,6 +55,8 @@ export const useSessionStore = create<SessionStore>()(
 
         setPreferences: (prefs) => set({ preferences: prefs }),
 
+        setOccasion: (occasion) => set({ occasion }),
+
         setRecommendations: (recs) => set({ recommendations: recs }),
 
         clearGeneratedState: () =>
@@ -71,6 +81,7 @@ export const useSessionStore = create<SessionStore>()(
       partialize: (s) => ({
         images: s.images,
         preferences: s.preferences,
+        occasion: s.occasion,
       }),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);

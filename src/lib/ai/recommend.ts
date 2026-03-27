@@ -1,5 +1,5 @@
 import Anthropic, { APIError } from "@anthropic-ai/sdk";
-import type { RecommendationResponse, StylePreferences } from "@/types";
+import type { OccasionMode, RecommendationResponse, StylePreferences } from "@/types";
 import {
   buildRecommendationUserPrompt,
   getMockRecommendations,
@@ -193,7 +193,8 @@ async function delay(ms: number) {
 
 async function generateAnthropicRecommendations(
   preferences: StylePreferences,
-  frontImageBase64?: string
+  frontImageBase64?: string,
+  occasion?: OccasionMode
 ) {
   const client = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY,
@@ -201,7 +202,7 @@ async function generateAnthropicRecommendations(
   });
 
   const messages: Anthropic.MessageParam[] = [];
-  const userPrompt = buildRecommendationUserPrompt(preferences);
+  const userPrompt = buildRecommendationUserPrompt(preferences, occasion);
 
   if (frontImageBase64) {
     const base64Data = frontImageBase64.includes(",")
@@ -267,7 +268,8 @@ function extractOpenAIText(payload: OpenAIResponsePayload) {
 
 async function generateOpenAIRecommendations(
   preferences: StylePreferences,
-  frontImageBase64?: string
+  frontImageBase64?: string,
+  occasion?: OccasionMode
 ) {
   const openAiApiKey = process.env.OPENAI_API_KEY;
 
@@ -282,7 +284,7 @@ async function generateOpenAIRecommendations(
   const userContent: Array<Record<string, string>> = [
     {
       type: "input_text",
-      text: buildRecommendationUserPrompt(preferences),
+      text: buildRecommendationUserPrompt(preferences, occasion),
     },
   ];
 
@@ -385,16 +387,17 @@ async function generateOpenAIRecommendations(
 
 export async function generateRecommendations(
   preferences: StylePreferences,
-  frontImageBase64?: string
+  frontImageBase64?: string,
+  occasion?: OccasionMode
 ): Promise<RecommendationResponse> {
   if (USE_MOCK) {
     await delay(800);
-    return normalizeRecommendationResponse(getMockRecommendations(preferences));
+    return normalizeRecommendationResponse(getMockRecommendations(preferences, occasion));
   }
 
   if (RECOMMENDATION_PROVIDER === "openai") {
-    return generateOpenAIRecommendations(preferences, frontImageBase64);
+    return generateOpenAIRecommendations(preferences, frontImageBase64, occasion);
   }
 
-  return generateAnthropicRecommendations(preferences, frontImageBase64);
+  return generateAnthropicRecommendations(preferences, frontImageBase64, occasion);
 }
