@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PageShell } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/Button";
@@ -87,32 +87,39 @@ function OptionGrid<T extends string>({
 
 export default function PreferencesPage() {
   const router = useRouter();
-  const { preferences, setPreferences, images } = useSessionStore();
+  const { preferences, setPreferences, images, hasHydrated } = useSessionStore();
 
-  const [direction, setDirection] = useState<StyleDirection | null>(
-    preferences?.direction ?? null
-  );
-  const [budget, setBudget] = useState<Budget | null>(preferences?.budget ?? null);
-  const [fit, setFit] = useState<FitPreference | null>(preferences?.fit ?? null);
-  const [colors, setColors] = useState<ColorPreference | null>(
-    preferences?.colors ?? null
-  );
+  const [direction, setDirection] = useState<StyleDirection | null>(null);
+  const [budget, setBudget] = useState<Budget | null>(null);
+  const [fit, setFit] = useState<FitPreference | null>(null);
+  const [colors, setColors] = useState<ColorPreference | null>(null);
 
-  // Guard: redirect if no image uploaded
-  if (!images.front && typeof window !== "undefined") {
-    router.replace("/upload");
-    return null;
-  }
+  useEffect(() => {
+    if (!hasHydrated) {
+      return;
+    }
 
-  const canContinue = direction && budget && fit && colors;
+    if (!images.front) {
+      router.replace("/upload");
+    }
+  }, [hasHydrated, images.front, router]);
+
+  if (!hasHydrated) return null;
+
+  const selectedDirection = direction ?? preferences?.direction ?? null;
+  const selectedBudget = budget ?? preferences?.budget ?? null;
+  const selectedFit = fit ?? preferences?.fit ?? null;
+  const selectedColors = colors ?? preferences?.colors ?? null;
+  const canContinue =
+    selectedDirection && selectedBudget && selectedFit && selectedColors;
 
   function handleContinue() {
     if (!canContinue) return;
     setPreferences({
-      direction: direction!,
-      budget: budget!,
-      fit: fit!,
-      colors: colors!,
+      direction: selectedDirection!,
+      budget: selectedBudget!,
+      fit: selectedFit!,
+      colors: selectedColors!,
     } satisfies StylePreferences);
     router.push("/recommendations");
   }
@@ -133,25 +140,25 @@ export default function PreferencesPage() {
         <OptionGrid
           label="Style direction"
           options={STYLE_OPTIONS}
-          value={direction}
+          value={selectedDirection}
           onChange={setDirection}
         />
         <OptionGrid
           label="Budget per item"
           options={BUDGET_OPTIONS}
-          value={budget}
+          value={selectedBudget}
           onChange={setBudget}
         />
         <OptionGrid
           label="Fit preference"
           options={FIT_OPTIONS}
-          value={fit}
+          value={selectedFit}
           onChange={setFit}
         />
         <OptionGrid
           label="Colour preference"
           options={COLOR_OPTIONS}
-          value={colors}
+          value={selectedColors}
           onChange={setColors}
         />
       </div>

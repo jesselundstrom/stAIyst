@@ -193,6 +193,19 @@ If something is unclear:
 
 ---
 
+## Testing expectations
+
+- Use Playwright for critical end-to-end coverage
+- Treat these as critical flows:
+  - upload -> preferences -> recommendations
+  - recommendations -> product selection -> try-on
+  - route guards that protect required session state
+  - loading, error, and retry states in key user-facing steps
+- When changing critical flow behavior, add or update Playwright coverage in the same change when practical
+- Prefer deterministic test setup with mocks over live third-party dependencies
+
+---
+
 ## Definition of done
 
 A feature is only done when:
@@ -202,3 +215,4 @@ A feature is only done when:
 - it fits the UI style of the app
 - it does not leak secrets
 - it does not add unnecessary architecture
+- critical flows still have appropriate Playwright coverage

@@ -6,12 +6,14 @@ import type { AppSession, StylePreferences, NormalizedProduct, RecommendationRes
 import type { TryOnResult } from "@/types";
 
 interface SessionStore extends AppSession {
+  hasHydrated: boolean;
   setFrontImage(dataUrl: string): void;
   setBackImage(dataUrl: string | null): void;
   setPreferences(prefs: StylePreferences): void;
   setRecommendations(recs: RecommendationResponse): void;
   setSelectedProduct(product: NormalizedProduct | null): void;
   setTryOnResult(result: TryOnResult | null): void;
+  setHasHydrated(hasHydrated: boolean): void;
   reset(): void;
 }
 
@@ -25,25 +27,36 @@ const INITIAL_STATE: AppSession = {
 
 export const useSessionStore = create<SessionStore>()(
   persist(
-    (set) => ({
-      ...INITIAL_STATE,
+    (set) => {
+      if (typeof window !== "undefined") {
+        queueMicrotask(() => {
+          set({ hasHydrated: true });
+        });
+      }
 
-      setFrontImage: (dataUrl) =>
-        set((s) => ({ images: { ...s.images, front: dataUrl } })),
+      return {
+        ...INITIAL_STATE,
+        hasHydrated: false,
 
-      setBackImage: (dataUrl) =>
-        set((s) => ({ images: { ...s.images, back: dataUrl } })),
+        setFrontImage: (dataUrl) =>
+          set((s) => ({ images: { ...s.images, front: dataUrl } })),
 
-      setPreferences: (prefs) => set({ preferences: prefs }),
+        setBackImage: (dataUrl) =>
+          set((s) => ({ images: { ...s.images, back: dataUrl } })),
 
-      setRecommendations: (recs) => set({ recommendations: recs }),
+        setPreferences: (prefs) => set({ preferences: prefs }),
 
-      setSelectedProduct: (product) => set({ selectedProduct: product }),
+        setRecommendations: (recs) => set({ recommendations: recs }),
 
-      setTryOnResult: (result) => set({ tryOnResult: result }),
+        setSelectedProduct: (product) => set({ selectedProduct: product }),
 
-      reset: () => set(INITIAL_STATE),
-    }),
+        setTryOnResult: (result) => set({ tryOnResult: result }),
+
+        setHasHydrated: (hasHydrated) => set({ hasHydrated }),
+
+        reset: () => set(INITIAL_STATE),
+      };
+    },
     {
       name: "staiyst-session",
       // Only persist images and preferences — skip large base64 blobs from recommendations
@@ -51,6 +64,9 @@ export const useSessionStore = create<SessionStore>()(
         images: s.images,
         preferences: s.preferences,
       }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     }
   )
 );

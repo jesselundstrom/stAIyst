@@ -14,7 +14,8 @@ type Status = "idle" | "loading" | "done" | "error";
 
 export default function TryOnPage() {
   const router = useRouter();
-  const { images, selectedProduct, setTryOnResult, tryOnResult } = useSessionStore();
+  const { images, selectedProduct, setTryOnResult, tryOnResult, hasHydrated } =
+    useSessionStore();
 
   const [status, setStatus] = useState<Status>(tryOnResult ? "done" : "idle");
   const [result, setResult] = useState<TryOnResult | null>(tryOnResult);
@@ -22,10 +23,14 @@ export default function TryOnPage() {
 
   // Guard
   useEffect(() => {
+    if (!hasHydrated) {
+      return;
+    }
+
     if (!images.front || !selectedProduct) {
       router.replace("/recommendations");
     }
-  }, [images.front, selectedProduct, router]);
+  }, [hasHydrated, images.front, selectedProduct, router]);
 
   const generate = useCallback(async () => {
     if (!images.front || !selectedProduct) return;
@@ -62,7 +67,7 @@ export default function TryOnPage() {
     }
   }, [status, generate]);
 
-  if (!selectedProduct || !images.front) return null;
+  if (!hasHydrated || !selectedProduct || !images.front) return null;
 
   const currencySymbol =
     selectedProduct.currencyCode === "GBP" ? "£"
