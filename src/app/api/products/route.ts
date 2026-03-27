@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { searchProductsForRecommendation } from "@/lib/shopify/search";
+import { searchProductsForRecommendation } from "@/lib/adtraction/search";
 import type { Recommendation } from "@/types";
 
 export async function POST(req: NextRequest) {

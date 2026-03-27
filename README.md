@@ -12,6 +12,35 @@ npm run dev
 
 The app will be available at `http://localhost:3000`.
 
+## End-to-end testing
+
+This repo uses Playwright for the most important user journeys.
+
+One-time browser install:
+
+```bash
+npx playwright install chromium
+```
+
+Run the smoke suite:
+
+```bash
+npm run test:e2e
+```
+
+Helpful variants:
+
+```bash
+npm run test:e2e:headed
+npm run test:e2e:ui
+```
+
+Notes:
+
+- The Playwright config starts the app automatically.
+- E2E runs force mock recommendations, mock products, and mock try-on so the suite stays fast and deterministic.
+- The current smoke coverage focuses on the most critical MVP flows: route guards, upload -> recommendations, and recommendation -> try-on.
+
 ## Recommendation provider
 
 Recommendation generation is selected on the server with root-level env vars such as `.env.local`.

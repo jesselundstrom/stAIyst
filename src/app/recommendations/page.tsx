@@ -28,8 +28,14 @@ type RecommendationErrorResponse = {
 
 export default function RecommendationsPage() {
   const router = useRouter();
-  const { images, preferences, recommendations, setRecommendations, setSelectedProduct } =
-    useSessionStore();
+  const {
+    images,
+    preferences,
+    recommendations,
+    setRecommendations,
+    setSelectedProduct,
+    hasHydrated,
+  } = useSessionStore();
 
   const [recLoading, setRecLoading] = useState(!recommendations);
   const [recError, setRecError] = useState<string | null>(null);
@@ -41,14 +47,18 @@ export default function RecommendationsPage() {
 
   // Guard
   useEffect(() => {
+    if (!hasHydrated) {
+      return;
+    }
+
     if (!images.front || !preferences) {
       router.replace("/upload");
     }
-  }, [images.front, preferences, router]);
+  }, [hasHydrated, images.front, preferences, router]);
 
   // Step 1: fetch recommendations
   useEffect(() => {
-    if (recs || !preferences || !images.front) {
+    if (!hasHydrated || recs || !preferences || !images.front) {
       return;
     }
 
@@ -108,7 +118,7 @@ export default function RecommendationsPage() {
     return () => {
       cancelled = true;
     };
-  }, [recs, preferences, images.front, setRecommendations, retryCount]);
+  }, [hasHydrated, recs, preferences, images.front, setRecommendations, retryCount]);
 
   // Step 2: fetch products for each slot once recs arrive
   useEffect(() => {
@@ -163,7 +173,7 @@ export default function RecommendationsPage() {
     setRetryCount((count) => count + 1);
   }
 
-  if (!preferences || !images.front) return null;
+  if (!hasHydrated || !preferences || !images.front) return null;
 
   return (
     <PageShell>
