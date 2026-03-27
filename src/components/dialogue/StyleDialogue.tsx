@@ -14,10 +14,26 @@ const SECOND_TURN_DELAY_MS = 2400;
 const SINGLE_TURN_COMPLETE_DELAY_MS = 2600;
 const FIRST_TURN_DELAY_MS = 700;
 
+const CLAUDE_NAMES = ["Mara", "Elise", "Noor", "Sable", "Vera"];
+const GPT_NAMES = ["Arlo", "Felix", "Theo", "Caden", "Oscar"];
+
+function pickName(pool: string[], seed: string): string {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+  }
+  return pool[hash % pool.length];
+}
+
 export function StyleDialogue({ turns, onComplete }: StyleDialogueProps) {
   const [revealedCount, setRevealedCount] = useState(0);
   const onCompleteRef = useRef(onComplete);
-  const leadParticipant = turns[0]?.participant === "gpt" ? "GPT" : "Claude";
+
+  const seed = turns[0]?.text ?? "default";
+  const claudeName = pickName(CLAUDE_NAMES, seed);
+  const gptName = pickName(GPT_NAMES, seed);
+
+  const leadName = turns[0]?.participant === "gpt" ? gptName : claudeName;
   const turnKey = turns
     .map((turn, index) => `${index}:${turn.participant}:${turn.text}`)
     .join("|");
@@ -72,7 +88,7 @@ export function StyleDialogue({ turns, onComplete }: StyleDialogueProps) {
           <div className="flex items-center gap-3">
             <div className="h-2 w-2 animate-pulse rounded-full bg-neutral-900" />
             <p className="text-sm font-medium text-neutral-700">
-              {leadParticipant} is reviewing your look...
+              {leadName} is reviewing your look...
             </p>
           </div>
         </div>
@@ -80,6 +96,8 @@ export function StyleDialogue({ turns, onComplete }: StyleDialogueProps) {
         {turns.map((turn, index) => {
           const isClaude = turn.participant === "claude";
           const isVisible = revealedCount > index;
+          const name = isClaude ? claudeName : gptName;
+          const initial = name[0];
 
           return (
             <div
@@ -105,12 +123,21 @@ export function StyleDialogue({ turns, onComplete }: StyleDialogueProps) {
                       ? "bg-neutral-900 text-white"
                       : "bg-neutral-200 text-neutral-700"
                   )}
+                  title={name}
                 >
-                  {isClaude ? "C" : "G"}
+                  {initial}
                 </div>
 
-                <div className="rounded-2xl bg-neutral-50 px-4 py-3 text-sm leading-relaxed text-neutral-700">
-                  {turn.text}
+                <div className="flex flex-col gap-1">
+                  <span className={cn(
+                    "text-[10px] font-medium uppercase tracking-wider",
+                    isClaude ? "text-neutral-400" : "text-right text-neutral-400"
+                  )}>
+                    {name}
+                  </span>
+                  <div className="rounded-2xl bg-neutral-50 px-4 py-3 text-sm leading-relaxed text-neutral-700">
+                    {turn.text}
+                  </div>
                 </div>
               </div>
             </div>

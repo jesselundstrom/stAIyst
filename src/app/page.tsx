@@ -8,7 +8,7 @@ export default function HomePage() {
       <section className="mx-auto w-full max-w-5xl px-6 py-24 md:py-36">
         <div className="max-w-xl">
           <p className="mb-4 text-xs font-medium uppercase tracking-widest text-neutral-400">
-            AI-assisted styling
+            Personal styling, powered by AI
           </p>
           <h1 className="font-display mb-6 text-5xl font-medium leading-[1.1] tracking-tight text-neutral-900 md:text-6xl">
             A cleaner direction
