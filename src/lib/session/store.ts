@@ -11,6 +11,7 @@ interface SessionStore extends AppSession {
   setBackImage(dataUrl: string | null): void;
   setPreferences(prefs: StylePreferences): void;
   setRecommendations(recs: RecommendationResponse): void;
+  clearGeneratedState(): void;
   setSelectedProduct(product: NormalizedProduct | null): void;
   setTryOnResult(result: TryOnResult | null): void;
   setHasHydrated(hasHydrated: boolean): void;
@@ -47,6 +48,13 @@ export const useSessionStore = create<SessionStore>()(
         setPreferences: (prefs) => set({ preferences: prefs }),
 
         setRecommendations: (recs) => set({ recommendations: recs }),
+
+        clearGeneratedState: () =>
+          set({
+            recommendations: null,
+            selectedProduct: null,
+            tryOnResult: null,
+          }),
 
         setSelectedProduct: (product) => set({ selectedProduct: product }),
 

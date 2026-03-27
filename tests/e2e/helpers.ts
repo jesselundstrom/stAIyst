@@ -1,5 +1,29 @@
 import { expect, type Page } from "@playwright/test";
 
+export async function seedRecommendationPrerequisites(page: Page) {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      "staiyst-session",
+      JSON.stringify({
+        state: {
+          images: {
+            front:
+              "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wn7Z4kAAAAASUVORK5CYII=",
+            back: null,
+          },
+          preferences: {
+            direction: "minimal",
+            budget: "medium",
+            fit: "regular",
+            colors: "neutral",
+          },
+        },
+        version: 0,
+      })
+    );
+  });
+}
+
 export async function uploadValidFrontPhoto(page: Page) {
   const frontInput = page.locator('input[type="file"]').first();
   await frontInput.waitFor({ state: "attached" });
@@ -54,4 +78,9 @@ export async function completeRecommendationSetup(page: Page) {
   await page.getByRole("button", { name: "Regular" }).click();
   await page.getByRole("button", { name: "Neutral" }).click();
   await page.getByRole("button", { name: "Get recommendations" }).click();
+
+  await expect(page).toHaveURL(/\/stylist-review$/);
+  await expect(
+    page.getByRole("heading", { name: "Two stylists are reviewing your look." })
+  ).toBeVisible();
 }

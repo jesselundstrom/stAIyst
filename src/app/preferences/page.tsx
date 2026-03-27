@@ -87,7 +87,8 @@ function OptionGrid<T extends string>({
 
 export default function PreferencesPage() {
   const router = useRouter();
-  const { preferences, setPreferences, images, hasHydrated } = useSessionStore();
+  const { preferences, setPreferences, clearGeneratedState, images, hasHydrated } =
+    useSessionStore();
 
   const [direction, setDirection] = useState<StyleDirection | null>(null);
   const [budget, setBudget] = useState<Budget | null>(null);
@@ -115,13 +116,14 @@ export default function PreferencesPage() {
 
   function handleContinue() {
     if (!canContinue) return;
+    clearGeneratedState();
     setPreferences({
       direction: selectedDirection!,
       budget: selectedBudget!,
       fit: selectedFit!,
       colors: selectedColors!,
     } satisfies StylePreferences);
-    router.push("/recommendations");
+    router.push("/stylist-review");
   }
 
   return (

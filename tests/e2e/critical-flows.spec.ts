@@ -1,15 +1,27 @@
 import { expect, test } from "@playwright/test";
-import { completeRecommendationSetup } from "./helpers";
+import { completeRecommendationSetup, seedRecommendationPrerequisites } from "./helpers";
 
 test.describe("critical user flows", () => {
-  test("redirects direct recommendation access back to upload without session state", async ({
+  test("redirects direct review access back to upload without session state", async ({
     page,
   }) => {
-    await page.goto("/recommendations");
+    await page.goto("/stylist-review");
 
     await expect(page).toHaveURL(/\/upload$/);
     await expect(
       page.getByRole("heading", { name: "Upload your photo" })
+    ).toBeVisible();
+  });
+
+  test("redirects direct recommendation access into stylist review when prerequisites exist", async ({
+    page,
+  }) => {
+    await seedRecommendationPrerequisites(page);
+    await page.goto("/recommendations");
+
+    await expect(page).toHaveURL(/\/stylist-review$/);
+    await expect(
+      page.getByRole("heading", { name: "Two stylists are reviewing your look." })
     ).toBeVisible();
   });
 
@@ -18,16 +30,13 @@ test.describe("critical user flows", () => {
   }) => {
     await completeRecommendationSetup(page);
 
+    await expect(page.getByText("Reviewing your look", { exact: true })).toBeVisible();
     await expect(page).toHaveURL(/\/recommendations$/);
     await expect(
       page.getByRole("heading", {
         name: "We found a cleaner direction for this look.",
       })
     ).toBeVisible();
-
-    await expect(page.getByText("Two perspectives considered.")).toBeVisible({
-      timeout: 8000,
-    });
     await expect(
       page.getByRole("heading", { name: "Overshirt / Layer" })
     ).toBeVisible();
@@ -37,9 +46,7 @@ test.describe("critical user flows", () => {
   test("lets the user move from recommendations into try-on", async ({ page }) => {
     await completeRecommendationSetup(page);
 
-    await expect(page.getByText("Two perspectives considered.")).toBeVisible({
-      timeout: 8000,
-    });
+    await expect(page).toHaveURL(/\/recommendations$/);
 
     await page.getByRole("button", { name: "Try on" }).first().click();
 
