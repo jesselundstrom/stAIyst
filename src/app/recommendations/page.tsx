@@ -15,6 +15,10 @@ type SlotProducts = {
   error: string | null;
 };
 
+type RecommendationErrorResponse = {
+  error?: string;
+};
+
 export default function RecommendationsPage() {
   const router = useRouter();
   const { images, preferences, recommendations, setRecommendations, setSelectedProduct } =
@@ -23,8 +27,8 @@ export default function RecommendationsPage() {
   const [recLoading, setRecLoading] = useState(!recommendations);
   const [recError, setRecError] = useState<string | null>(null);
   const [recs, setRecs] = useState<RecommendationResponse | null>(recommendations);
-
   const [slots, setSlots] = useState<SlotProducts[]>([]);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Guard
   useEffect(() => {
@@ -35,13 +39,16 @@ export default function RecommendationsPage() {
 
   // Step 1: fetch recommendations
   useEffect(() => {
-    if (recs) {
-      return; // already loaded
+    if (recs || !preferences || !images.front) {
+      return;
     }
+
+    let cancelled = false;
 
     async function fetchRecs() {
       setRecLoading(true);
       setRecError(null);
+
       try {
         const res = await fetch("/api/recommend", {
           method: "POST",
@@ -51,20 +58,42 @@ export default function RecommendationsPage() {
             frontImageBase64: images.front,
           }),
         });
-        if (!res.ok) throw new Error("Recommendation request failed.");
+
+        if (!res.ok) {
+          const payload = (await res.json().catch(() => null)) as
+            | RecommendationErrorResponse
+            | null;
+          throw new Error(
+            payload?.error ??
+              "We couldn't generate recommendations right now. Please try again."
+          );
+        }
+
         const data = (await res.json()) as RecommendationResponse;
+        if (cancelled) return;
+
         setRecs(data);
         setRecommendations(data);
-      } catch {
-        setRecError("We couldn't generate recommendations right now. Please try again.");
+      } catch (error) {
+        if (cancelled) return;
+
+        setRecError(
+          error instanceof Error
+            ? error.message
+            : "We couldn't generate recommendations right now. Please try again."
+        );
       } finally {
+        if (cancelled) return;
         setRecLoading(false);
       }
     }
 
-    fetchRecs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    void fetchRecs();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [recs, preferences, images.front, setRecommendations, retryCount]);
 
   // Step 2: fetch products for each slot once recs arrive
   useEffect(() => {
@@ -80,9 +109,9 @@ export default function RecommendationsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ recommendation: rec }),
       })
-        .then((r) => {
-          if (!r.ok) throw new Error("Product fetch failed.");
-          return r.json() as Promise<{ products: NormalizedProduct[] }>;
+        .then((response) => {
+          if (!response.ok) throw new Error("Product fetch failed.");
+          return response.json() as Promise<{ products: NormalizedProduct[] }>;
         })
         .then(({ products }) => {
           setSlots((prev) => {
@@ -110,6 +139,13 @@ export default function RecommendationsPage() {
     router.push("/try-on");
   }
 
+  function handleRetry() {
+    setRecs(null);
+    setRecError(null);
+    setRecLoading(true);
+    setRetryCount((count) => count + 1);
+  }
+
   if (!preferences || !images.front) return null;
 
   return (
@@ -129,7 +165,7 @@ export default function RecommendationsPage() {
 
         <div className="flex flex-col gap-2">
           <p className="text-xs font-medium uppercase tracking-widest text-neutral-400">
-            Step 3 — Recommendations
+            Step 3 - Recommendations
           </p>
           {recLoading ? (
             <>
@@ -139,7 +175,7 @@ export default function RecommendationsPage() {
           ) : recError ? (
             <div className="flex flex-col gap-3">
               <p className="text-sm text-red-500">{recError}</p>
-              <Button variant="outline" size="sm" onClick={() => { setRecs(null); setRecLoading(true); }}>
+              <Button variant="outline" size="sm" onClick={handleRetry}>
                 Retry
               </Button>
             </div>
