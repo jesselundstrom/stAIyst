@@ -1,10 +1,24 @@
 import type { Metadata, Viewport } from "next";
+import { Cormorant_Garamond, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  weight: ["300", "400", "500"],
+  variable: "--font-body",
+});
+
+const cormorantGaramond = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
+  variable: "--font-display",
+});
+
 export const metadata: Metadata = {
-  title: "stAIyst — AI-assisted styling",
+  title: "stAIyst - AI-assisted styling",
   description: "Upload a photo, get real clothing recommendations, and preview items on yourself.",
   appleWebApp: {
     capable: true,
@@ -26,7 +40,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="h-full antialiased">
+    <html
+      lang="en"
+      className={`${dmSans.variable} ${cormorantGaramond.variable} h-full antialiased`}
+    >
       <body className="flex min-h-full flex-col bg-[#fafaf9] text-neutral-900">
         <ServiceWorkerRegistration />
         <Header />

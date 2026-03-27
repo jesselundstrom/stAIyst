@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { generateDialogue } from "@/lib/ai/dialogue";
 import {
-  generateRecommendations,
   isRecommendationServiceError,
 } from "@/lib/ai/recommend";
 import type { StylePreferences } from "@/types";
@@ -16,15 +16,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing preferences" }, { status: 400 });
     }
 
-    const result = await generateRecommendations(
-      body.preferences,
-      body.frontImageBase64
-    );
+    const result = await generateDialogue(body.preferences, body.frontImageBase64);
 
     return NextResponse.json(result);
   } catch (err) {
     if (isRecommendationServiceError(err)) {
-      console.warn("[recommend] Service error", {
+      console.warn("[recommend-dialogue] Service error", {
         status: err.status,
         requestId: err.requestId,
         retryable: err.retryable,
@@ -39,7 +36,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.error("[recommend] Unexpected error:", err);
+    console.error("[recommend-dialogue] Unexpected error:", err);
     return NextResponse.json(
       { error: "Failed to generate recommendations." },
       { status: 500 }

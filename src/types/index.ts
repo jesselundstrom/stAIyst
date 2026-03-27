@@ -34,6 +34,18 @@ export interface RecommendationResponse {
   recommendations: Recommendation[];
 }
 
+export type DialogueParticipant = "claude" | "gpt";
+
+export interface DialogueTurn {
+  participant: DialogueParticipant;
+  text: string;
+}
+
+export interface DialogueResponse {
+  turns: DialogueTurn[] | null;
+  recommendation: RecommendationResponse;
+}
+
 // ─── Products ──────────────────────────────────────────────────────────────
 
 export interface NormalizedProduct {

@@ -3,16 +3,27 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { StyleDialogue } from "@/components/dialogue/StyleDialogue";
 import { PageShell } from "@/components/layout/PageShell";
 import { RecommendationSlot } from "@/components/recommendation/RecommendationSlot";
 import { Button } from "@/components/ui/Button";
 import { useSessionStore } from "@/lib/session/store";
-import type { NormalizedProduct, RecommendationResponse } from "@/types";
+import { cn } from "@/lib/utils/cn";
+import type {
+  DialogueResponse,
+  DialogueTurn,
+  NormalizedProduct,
+  RecommendationResponse,
+} from "@/types";
 
 type SlotProducts = {
   products: NormalizedProduct[];
   loading: boolean;
   error: string | null;
+};
+
+type RecommendationErrorResponse = {
+  error?: string;
 };
 
 export default function RecommendationsPage() {
@@ -23,8 +34,10 @@ export default function RecommendationsPage() {
   const [recLoading, setRecLoading] = useState(!recommendations);
   const [recError, setRecError] = useState<string | null>(null);
   const [recs, setRecs] = useState<RecommendationResponse | null>(recommendations);
-
+  const [dialogue, setDialogue] = useState<DialogueTurn[] | null>(null);
+  const [dialogueComplete, setDialogueComplete] = useState(Boolean(recommendations));
   const [slots, setSlots] = useState<SlotProducts[]>([]);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Guard
   useEffect(() => {
@@ -35,15 +48,20 @@ export default function RecommendationsPage() {
 
   // Step 1: fetch recommendations
   useEffect(() => {
-    if (recs) {
-      return; // already loaded
+    if (recs || !preferences || !images.front) {
+      return;
     }
+
+    let cancelled = false;
 
     async function fetchRecs() {
       setRecLoading(true);
       setRecError(null);
+      setDialogue(null);
+      setDialogueComplete(false);
+
       try {
-        const res = await fetch("/api/recommend", {
+        const res = await fetch("/api/recommend-dialogue", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -51,20 +69,46 @@ export default function RecommendationsPage() {
             frontImageBase64: images.front,
           }),
         });
-        if (!res.ok) throw new Error("Recommendation request failed.");
-        const data = (await res.json()) as RecommendationResponse;
-        setRecs(data);
-        setRecommendations(data);
-      } catch {
-        setRecError("We couldn't generate recommendations right now. Please try again.");
+
+        if (!res.ok) {
+          const payload = (await res.json().catch(() => null)) as
+            | RecommendationErrorResponse
+            | null;
+          throw new Error(
+            payload?.error ??
+              "We couldn't generate recommendations right now. Please try again."
+          );
+        }
+
+        const data = (await res.json()) as DialogueResponse;
+        if (cancelled) return;
+
+        setDialogue(data.turns);
+        setDialogueComplete(data.turns === null);
+        setRecs(data.recommendation);
+        setRecommendations(data.recommendation);
+      } catch (error) {
+        if (cancelled) return;
+
+        setDialogue(null);
+        setDialogueComplete(false);
+        setRecError(
+          error instanceof Error
+            ? error.message
+            : "We couldn't generate recommendations right now. Please try again."
+        );
       } finally {
+        if (cancelled) return;
         setRecLoading(false);
       }
     }
 
-    fetchRecs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    void fetchRecs();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [recs, preferences, images.front, setRecommendations, retryCount]);
 
   // Step 2: fetch products for each slot once recs arrive
   useEffect(() => {
@@ -80,9 +124,9 @@ export default function RecommendationsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ recommendation: rec }),
       })
-        .then((r) => {
-          if (!r.ok) throw new Error("Product fetch failed.");
-          return r.json() as Promise<{ products: NormalizedProduct[] }>;
+        .then((response) => {
+          if (!response.ok) throw new Error("Product fetch failed.");
+          return response.json() as Promise<{ products: NormalizedProduct[] }>;
         })
         .then(({ products }) => {
           setSlots((prev) => {
@@ -110,6 +154,15 @@ export default function RecommendationsPage() {
     router.push("/try-on");
   }
 
+  function handleRetry() {
+    setRecs(null);
+    setDialogue(null);
+    setDialogueComplete(false);
+    setRecError(null);
+    setRecLoading(true);
+    setRetryCount((count) => count + 1);
+  }
+
   if (!preferences || !images.front) return null;
 
   return (
@@ -129,7 +182,7 @@ export default function RecommendationsPage() {
 
         <div className="flex flex-col gap-2">
           <p className="text-xs font-medium uppercase tracking-widest text-neutral-400">
-            Step 3 — Recommendations
+            Step 3 - Recommendations
           </p>
           {recLoading ? (
             <>
@@ -139,7 +192,7 @@ export default function RecommendationsPage() {
           ) : recError ? (
             <div className="flex flex-col gap-3">
               <p className="text-sm text-red-500">{recError}</p>
-              <Button variant="outline" size="sm" onClick={() => { setRecs(null); setRecLoading(true); }}>
+              <Button variant="outline" size="sm" onClick={handleRetry}>
                 Retry
               </Button>
             </div>
@@ -156,9 +209,33 @@ export default function RecommendationsPage() {
         </div>
       </div>
 
+      {dialogue && !recError ? (
+        <div className="mb-8">
+          {dialogueComplete ? (
+            <p className="text-xs italic text-neutral-400">
+              {dialogue.length > 1
+                ? "Two perspectives considered."
+                : "One stylist perspective was available."}
+            </p>
+          ) : (
+            <StyleDialogue
+              turns={dialogue}
+              onComplete={() => setDialogueComplete(true)}
+            />
+          )}
+        </div>
+      ) : null}
+
       {/* Recommendation slots */}
       {recs && (
-        <div className="flex flex-col gap-12">
+        <div
+          className={cn(
+            "flex flex-col gap-12 transition-all duration-500",
+            dialogue && !dialogueComplete
+              ? "pointer-events-none translate-y-2 opacity-0"
+              : "translate-y-0 opacity-100"
+          )}
+        >
           {recs.recommendations.map((rec, i) => (
             <RecommendationSlot
               key={rec.category + i}
