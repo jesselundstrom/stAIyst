@@ -10,6 +10,7 @@ import {
   DIALOGUE_SYSTEM_PROMPT_CLAUDE,
   DIALOGUE_SYSTEM_PROMPT_GPT,
 } from "./schemas";
+import { normalizeDialogueTurn, normalizeVisibleText } from "@/lib/text/normalizeVisibleText";
 import { generateRecommendations } from "./recommend";
 
 type AvailableDialogueProvider = DialogueParticipant;
@@ -82,7 +83,7 @@ function getImageMediaType(
 }
 
 function cleanDialogueText(text: string) {
-  return text.replace(/\s+/g, " ").trim();
+  return normalizeVisibleText(text);
 }
 
 function extractOpenAIText(payload: OpenAIResponsePayload) {
@@ -299,7 +300,7 @@ export async function generateDialogue(
 ): Promise<DialogueResponse> {
   if (USE_MOCK) {
     return {
-      turns: getMockDialogueTurns(preferences),
+      turns: getMockDialogueTurns(preferences).map(normalizeDialogueTurn),
       recommendation: await generateRecommendations(preferences, frontImageBase64),
     };
   }
@@ -350,7 +351,7 @@ export async function generateDialogue(
   const recommendation = await generateRecommendations(preferences, frontImageBase64);
 
   return {
-    turns: turns.length > 0 ? turns : null,
+    turns: turns.length > 0 ? turns.map(normalizeDialogueTurn) : null,
     recommendation,
   };
 }

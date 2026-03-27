@@ -110,7 +110,7 @@ export default function RecommendationsPage() {
 
         <div className="flex flex-col gap-2">
           <p className="text-xs font-medium uppercase tracking-widest text-neutral-400">
-            Step 4 - Recommendations
+            Step 4 of 4
           </p>
           {recs ? (
             <>

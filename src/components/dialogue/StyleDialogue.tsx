@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils/cn";
 import type { DialogueTurn } from "@/types";
 
@@ -16,7 +16,15 @@ const FIRST_TURN_DELAY_MS = 700;
 
 export function StyleDialogue({ turns, onComplete }: StyleDialogueProps) {
   const [revealedCount, setRevealedCount] = useState(0);
+  const onCompleteRef = useRef(onComplete);
   const leadParticipant = turns[0]?.participant === "gpt" ? "GPT" : "Claude";
+  const turnKey = turns
+    .map((turn, index) => `${index}:${turn.participant}:${turn.text}`)
+    .join("|");
+
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
 
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
@@ -36,13 +44,13 @@ export function StyleDialogue({ turns, onComplete }: StyleDialogueProps) {
 
       timers.push(
         setTimeout(() => {
-          onComplete();
+          onCompleteRef.current();
         }, COMPLETE_DELAY_MS)
       );
     } else {
       timers.push(
         setTimeout(() => {
-          onComplete();
+          onCompleteRef.current();
         }, SINGLE_TURN_COMPLETE_DELAY_MS)
       );
     }
@@ -50,7 +58,7 @@ export function StyleDialogue({ turns, onComplete }: StyleDialogueProps) {
     return () => {
       timers.forEach((timer) => clearTimeout(timer));
     };
-  }, [onComplete, turns.length]);
+  }, [turnKey, turns.length]);
 
   return (
     <div className="rounded-2xl border border-neutral-100 bg-white p-6 shadow-sm">
@@ -87,7 +95,7 @@ export function StyleDialogue({ turns, onComplete }: StyleDialogueProps) {
               <div
                 className={cn(
                   "flex max-w-[85%] items-start gap-3",
-                  isClaude ? "flex-row" : "flex-row-reverse text-right"
+                  isClaude ? "flex-row" : "flex-row-reverse"
                 )}
               >
                 <div

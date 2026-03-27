@@ -6,6 +6,7 @@ import {
   RECOMMENDATION_SCHEMA,
   RECOMMENDATION_SYSTEM_PROMPT,
 } from "./schemas";
+import { normalizeRecommendationResponse } from "@/lib/text/normalizeVisibleText";
 
 type RecommendationProvider = "anthropic" | "openai";
 type AnthropicErrorPayload = {
@@ -236,7 +237,7 @@ async function generateAnthropicRecommendations(
       .map((block) => (block as { type: "text"; text: string }).text)
       .join("");
 
-    return parseRecommendationJson(text);
+    return normalizeRecommendationResponse(parseRecommendationJson(text));
   } catch (error) {
     if (error instanceof APIError) {
       const serviceError = toAnthropicServiceError(error);
@@ -372,7 +373,7 @@ async function generateOpenAIRecommendations(
       );
     }
 
-    return parseRecommendationJson(text);
+    return normalizeRecommendationResponse(parseRecommendationJson(text));
   }
 
   throw new RecommendationServiceError(
@@ -388,7 +389,7 @@ export async function generateRecommendations(
 ): Promise<RecommendationResponse> {
   if (USE_MOCK) {
     await delay(800);
-    return getMockRecommendations(preferences);
+    return normalizeRecommendationResponse(getMockRecommendations(preferences));
   }
 
   if (RECOMMENDATION_PROVIDER === "openai") {

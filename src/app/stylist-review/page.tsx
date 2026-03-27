@@ -185,15 +185,15 @@ export default function StylistReviewPage() {
 
         <div className="flex flex-col gap-2 pt-1">
           <p className="text-xs font-medium uppercase tracking-widest text-neutral-400">
-            Step 3 - Stylist review
+            Step 3 of 4
           </p>
           <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">
             Two stylists are reviewing your look.
           </h1>
-          <p className="text-sm leading-relaxed text-neutral-500">
-            We&apos;re comparing perspective, palette, and proportion before landing on
-            your final recommendations.
-          </p>
+          <div className="space-y-2 text-sm leading-relaxed text-neutral-500">
+            <p>They&apos;re comparing palette, texture, and proportion.</p>
+            <p>Once they align on the direction, we&apos;ll show your final recommendations.</p>
+          </div>
         </div>
       </div>
 
@@ -228,9 +228,10 @@ export default function StylistReviewPage() {
                   <div className="h-4 w-9/12 animate-pulse rounded bg-neutral-100" />
                 </div>
 
-                <p className="text-sm leading-relaxed text-neutral-500">
-                  Pulling together a refined direction before we show the final edit.
-                </p>
+                <div className="space-y-2 text-sm leading-relaxed text-neutral-500">
+                  <p>They&apos;re pulling together a refined direction now.</p>
+                  <p>The final edit will appear here before you move into the product view.</p>
+                </div>
 
                 {!loading ? (
                   <p className="text-xs italic text-neutral-400">
@@ -251,9 +252,10 @@ export default function StylistReviewPage() {
                   <h2 className="text-xl font-semibold tracking-tight text-neutral-900">
                     Your direction is clearer now.
                   </h2>
-                  <p className="text-sm leading-relaxed text-neutral-500">
-                    {pendingRecommendation.styleSummary}
-                  </p>
+                  <div className="space-y-2 text-sm leading-relaxed text-neutral-500">
+                    <p>Here&apos;s the overall direction the stylists aligned on.</p>
+                    <p>{pendingRecommendation.styleSummary}</p>
+                  </div>
                 </div>
 
                 <div>
