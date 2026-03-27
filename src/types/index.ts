@@ -28,6 +28,7 @@ export interface Recommendation {
   targetColors: string[];
   targetFit: string;
   searchTerms: string[];
+  supportingQuote?: string;
 }
 
 export interface RecommendationResponse {
@@ -90,5 +91,6 @@ export interface AppSession {
   occasion: OccasionMode | null;
   recommendations: RecommendationResponse | null;
   selectedProduct: NormalizedProduct | null;
+  selectedRecommendation: Recommendation | null;
   tryOnResult: TryOnResult | null;
 }

@@ -12,6 +12,7 @@ import {
   DIALOGUE_SYSTEM_PROMPT_GPT,
 } from "./schemas";
 import { normalizeDialogueTurn, normalizeVisibleText } from "@/lib/text/normalizeVisibleText";
+import { attachSupportingQuotes } from "./supportingQuotes";
 import { generateRecommendations } from "./recommend";
 
 type AvailableDialogueProvider = DialogueParticipant;
@@ -324,13 +325,15 @@ export async function generateDialogue(
   occasion?: OccasionMode
 ): Promise<DialogueResponse> {
   if (USE_MOCK) {
+    const turns = getMockDialogueTurns(preferences, occasion).map(normalizeDialogueTurn);
+    const recommendation = attachSupportingQuotes(
+      await generateRecommendations(preferences, frontImageBase64, occasion),
+      turns
+    );
+
     return {
-      turns: getMockDialogueTurns(preferences, occasion).map(normalizeDialogueTurn),
-      recommendation: await generateRecommendations(
-        preferences,
-        frontImageBase64,
-        occasion
-      ),
+      turns,
+      recommendation,
     };
   }
 
@@ -386,14 +389,14 @@ export async function generateDialogue(
     }
   }
 
-  const recommendation = await generateRecommendations(
-    preferences,
-    frontImageBase64,
-    occasion
+  const normalizedTurns = turns.length > 0 ? turns.map(normalizeDialogueTurn) : null;
+  const recommendation = attachSupportingQuotes(
+    await generateRecommendations(preferences, frontImageBase64, occasion),
+    normalizedTurns
   );
 
   return {
-    turns: turns.length > 0 ? turns.map(normalizeDialogueTurn) : null,
+    turns: normalizedTurns,
     recommendation,
   };
 }

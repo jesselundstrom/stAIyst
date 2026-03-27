@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PageShell } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/Button";
@@ -48,7 +48,6 @@ const OCCASION_OPTIONS: Array<{
   value: OccasionMode;
   label: string;
   description: string;
-  featured?: boolean;
 }> = [
   { value: "work", label: "Work", description: "Sharp, polished, professional" },
   { value: "weekend", label: "Weekend", description: "Relaxed, effortless, easy" },
@@ -56,7 +55,6 @@ const OCCASION_OPTIONS: Array<{
     value: "going-out",
     label: "Going out",
     description: "Elevated, refined, occasion-ready",
-    featured: true,
   },
 ];
 
@@ -124,17 +122,24 @@ function OptionGrid<T extends string>({
   );
 }
 
+function formatPresetLabel(value: string) {
+  return value
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 function OccasionCard({
   label,
   description,
-  featured = false,
+  hint,
   selected,
   disabled,
   onClick,
 }: {
   label: string;
   description: string;
-  featured?: boolean;
+  hint: string;
   selected: boolean;
   disabled: boolean;
   onClick: () => void;
@@ -154,17 +159,7 @@ function OccasionCard({
       )}
     >
       <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-4">
-          <h2 className="font-display text-3xl font-medium tracking-tight">{label}</h2>
-          {featured ? (
-            <span
-              className={cn(
-                "h-px w-12 transition-opacity duration-300",
-                selected ? "bg-white/70" : "bg-[var(--gold)]"
-              )}
-            />
-          ) : null}
-        </div>
+        <h2 className="font-display text-3xl font-medium tracking-tight">{label}</h2>
         <p
           className={cn(
             "max-w-sm text-sm leading-relaxed",
@@ -181,7 +176,7 @@ function OccasionCard({
           selected ? "text-neutral-300" : "text-neutral-400"
         )}
       >
-        AI will build the full direction
+        {hint}
       </span>
     </button>
   );
@@ -189,7 +184,6 @@ function OccasionCard({
 
 export default function PreferencesPage() {
   const router = useRouter();
-  const navigationTimeoutRef = useRef<number | null>(null);
   const {
     preferences,
     occasion,
@@ -220,19 +214,11 @@ export default function PreferencesPage() {
     }
   }, [hasHydrated, images.front, router]);
 
-  useEffect(() => {
-    return () => {
-      if (navigationTimeoutRef.current !== null) {
-        window.clearTimeout(navigationTimeoutRef.current);
-      }
-    };
-  }, []);
-
   if (!hasHydrated || !images.front) {
     return null;
   }
 
-  const mode = modeOverride ?? (occasion ? "occasion" : preferences ? "manual" : "occasion");
+  const mode = modeOverride ?? "occasion";
   const selectedDirection = direction ?? preferences?.direction ?? null;
   const selectedBudget = budget ?? preferences?.budget ?? null;
   const selectedFit = fit ?? preferences?.fit ?? null;
@@ -241,12 +227,6 @@ export default function PreferencesPage() {
   const canContinue = Boolean(
     selectedDirection && selectedBudget && selectedFit && selectedColors
   );
-
-  function navigateToReview() {
-    navigationTimeoutRef.current = window.setTimeout(() => {
-      router.push("/stylist-review");
-    }, 300);
-  }
 
   function handleOccasionSelect(nextOccasion: OccasionMode) {
     if (isNavigating) {
@@ -265,7 +245,7 @@ export default function PreferencesPage() {
     setOccasion(nextOccasion);
     setModeOverride("occasion");
     setIsNavigating(true);
-    navigateToReview();
+    router.push("/stylist-review");
   }
 
   function handleManualContinue() {
@@ -284,7 +264,7 @@ export default function PreferencesPage() {
     setOccasion(null);
     setModeOverride("manual");
     setIsNavigating(true);
-    navigateToReview();
+    router.push("/stylist-review");
   }
 
   return (
@@ -310,7 +290,7 @@ export default function PreferencesPage() {
                   key={option.value}
                   label={option.label}
                   description={option.description}
-                  featured={option.featured}
+                  hint={`${formatPresetLabel(OCCASION_PREFERENCES[option.value].direction)} / ${formatPresetLabel(OCCASION_PREFERENCES[option.value].budget)} / ${formatPresetLabel(OCCASION_PREFERENCES[option.value].fit)}`}
                   selected={activeOccasion === option.value}
                   disabled={isNavigating}
                   onClick={() => handleOccasionSelect(option.value)}

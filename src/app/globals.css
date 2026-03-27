@@ -41,3 +41,14 @@ body {
     opacity: 1;
   }
 }
+
+@layer utilities {
+  .animate-fade-up {
+    animation: fadeUp 0.48s ease-out both;
+    animation-delay: var(--animation-delay, 0ms);
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.4s ease-out both;
+  }
+}

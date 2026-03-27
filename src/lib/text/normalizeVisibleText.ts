@@ -31,6 +31,9 @@ export function normalizeRecommendationResponse(
       reason: normalizeVisibleText(item.reason),
       targetFit: normalizeVisibleText(item.targetFit),
       targetColors: item.targetColors.map((color) => normalizeVisibleText(color)),
+      supportingQuote: item.supportingQuote
+        ? normalizeVisibleText(item.supportingQuote)
+        : undefined,
     })),
   };
 }

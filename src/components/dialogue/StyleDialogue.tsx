@@ -129,12 +129,11 @@ export function StyleDialogue({ turns, onComplete }: StyleDialogueProps) {
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <span className={cn(
-                    "text-[10px] font-medium uppercase tracking-wider",
-                    isClaude ? "text-neutral-400" : "text-right text-neutral-400"
-                  )}>
-                    {name}
-                  </span>
+                  <div className={cn("w-full", !isClaude && "text-right")}>
+                    <span className="text-[10px] font-medium uppercase tracking-wider text-neutral-400">
+                      {name}
+                    </span>
+                  </div>
                   <div className="rounded-2xl bg-neutral-50 px-4 py-3 text-sm leading-relaxed text-neutral-700">
                     {turn.text}
                   </div>

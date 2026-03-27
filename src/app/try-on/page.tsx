@@ -6,16 +6,25 @@ import Image from "next/image";
 import { PageShell } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
 import { useSessionStore } from "@/lib/session/store";
 import type { TryOnResult } from "@/types";
 import { cn } from "@/lib/utils/cn";
+import { getRecommendationCategoryLabel } from "@/lib/recommendation/categoryLabel";
 
 type Status = "idle" | "loading" | "done" | "error";
 
 export default function TryOnPage() {
   const router = useRouter();
-  const { images, selectedProduct, setTryOnResult, tryOnResult, hasHydrated } =
-    useSessionStore();
+  const {
+    images,
+    selectedProduct,
+    selectedRecommendation,
+    recommendations,
+    setTryOnResult,
+    tryOnResult,
+    hasHydrated,
+  } = useSessionStore();
 
   const [status, setStatus] = useState<Status>(tryOnResult ? "done" : "idle");
   const [result, setResult] = useState<TryOnResult | null>(tryOnResult);
@@ -69,6 +78,9 @@ export default function TryOnPage() {
 
   if (!hasHydrated || !selectedProduct || !images.front) return null;
 
+  const categoryLabel = selectedRecommendation
+    ? getRecommendationCategoryLabel(selectedRecommendation.category)
+    : null;
   const currencySymbol =
     selectedProduct.currencyCode === "GBP" ? "£"
     : selectedProduct.currencyCode === "USD" ? "$"
@@ -127,9 +139,8 @@ export default function TryOnPage() {
                     src={result.outputImageUrl}
                     alt="Try-on preview"
                     fill
-                    className="object-cover"
+                    className="animate-fade-in object-cover"
                     sizes="(max-width: 1024px) 50vw, 33vw"
-                    style={{ animation: "fadeIn 0.4s ease-out both" }}
                   />
                 )}
 
@@ -179,6 +190,48 @@ export default function TryOnPage() {
                   {currencySymbol}{selectedProduct.price}
                 </p>
               </div>
+
+              {selectedRecommendation ? (
+                <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+                  <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-1">
+                      <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-400">
+                        Why this item
+                      </p>
+                      <p className="text-sm font-semibold text-neutral-900">
+                        {categoryLabel}
+                      </p>
+                      <p className="text-sm leading-relaxed text-neutral-600">
+                        {selectedRecommendation.reason}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedRecommendation.targetColors.map((color) => (
+                        <Badge key={color} variant="muted">
+                          {color}
+                        </Badge>
+                      ))}
+                      <Badge variant="outline">{selectedRecommendation.targetFit}</Badge>
+                    </div>
+
+                    {selectedRecommendation.supportingQuote ? (
+                      <blockquote className="border-l border-neutral-300 pl-3 text-sm leading-relaxed text-neutral-600">
+                        <p className="mb-1 text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-400">
+                          From the review
+                        </p>
+                        <p>&ldquo;{selectedRecommendation.supportingQuote}&rdquo;</p>
+                      </blockquote>
+                    ) : null}
+
+                    {recommendations?.styleSummary ? (
+                      <p className="text-sm leading-relaxed text-neutral-500">
+                        {recommendations.styleSummary}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
 
               <div className="flex flex-col gap-2">
                 <a

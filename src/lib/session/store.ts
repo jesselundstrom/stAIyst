@@ -7,6 +7,7 @@ import type {
   StylePreferences,
   NormalizedProduct,
   RecommendationResponse,
+  Recommendation,
   OccasionMode,
 } from "@/types";
 import type { TryOnResult } from "@/types";
@@ -20,6 +21,7 @@ interface SessionStore extends AppSession {
   setRecommendations(recs: RecommendationResponse): void;
   clearGeneratedState(): void;
   setSelectedProduct(product: NormalizedProduct | null): void;
+  setSelectedRecommendation(recommendation: Recommendation | null): void;
   setTryOnResult(result: TryOnResult | null): void;
   setHasHydrated(hasHydrated: boolean): void;
   reset(): void;
@@ -31,6 +33,7 @@ const INITIAL_STATE: AppSession = {
   occasion: null,
   recommendations: null,
   selectedProduct: null,
+  selectedRecommendation: null,
   tryOnResult: null,
 };
 
@@ -57,16 +60,26 @@ export const useSessionStore = create<SessionStore>()(
 
         setOccasion: (occasion) => set({ occasion }),
 
-        setRecommendations: (recs) => set({ recommendations: recs }),
+        setRecommendations: (recs) =>
+          set({
+            recommendations: recs,
+            selectedProduct: null,
+            selectedRecommendation: null,
+            tryOnResult: null,
+          }),
 
         clearGeneratedState: () =>
           set({
             recommendations: null,
             selectedProduct: null,
+            selectedRecommendation: null,
             tryOnResult: null,
           }),
 
         setSelectedProduct: (product) => set({ selectedProduct: product }),
+
+        setSelectedRecommendation: (recommendation) =>
+          set({ selectedRecommendation: recommendation }),
 
         setTryOnResult: (result) => set({ tryOnResult: result }),
 

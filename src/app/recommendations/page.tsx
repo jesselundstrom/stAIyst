@@ -6,7 +6,11 @@ import Image from "next/image";
 import { PageShell } from "@/components/layout/PageShell";
 import { RecommendationSlot } from "@/components/recommendation/RecommendationSlot";
 import { useSessionStore } from "@/lib/session/store";
-import type { NormalizedProduct, RecommendationResponse } from "@/types";
+import type {
+  NormalizedProduct,
+  Recommendation,
+  RecommendationResponse,
+} from "@/types";
 
 type SlotProducts = {
   products: NormalizedProduct[];
@@ -21,6 +25,7 @@ export default function RecommendationsPage() {
     preferences,
     recommendations,
     setSelectedProduct,
+    setSelectedRecommendation,
     hasHydrated,
   } = useSessionStore();
 
@@ -86,8 +91,9 @@ export default function RecommendationsPage() {
     });
   }, [recs]);
 
-  function handleTryOn(product: NormalizedProduct) {
+  function handleTryOn(product: NormalizedProduct, recommendation: Recommendation) {
     setSelectedProduct(product);
+    setSelectedRecommendation(recommendation);
     router.push("/try-on");
   }
 

@@ -14,7 +14,6 @@ export function PageShell({ children, className, narrow = false }: PageShellProp
         narrow ? "max-w-2xl" : "max-w-5xl",
         className
       )}
-      style={{ animation: "fadeUp 0.35s ease-out both" }}
     >
       {children}
     </main>

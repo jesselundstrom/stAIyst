@@ -1,25 +1,18 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { ProductCard } from "@/components/product/ProductCard";
 import type { Recommendation, NormalizedProduct } from "@/types";
+import { getRecommendationCategoryLabel } from "@/lib/recommendation/categoryLabel";
 
 interface RecommendationSlotProps {
   recommendation: Recommendation;
   products: NormalizedProduct[];
   loading: boolean;
   error: string | null;
-  onTryOn: (product: NormalizedProduct) => void;
+  onTryOn: (product: NormalizedProduct, recommendation: Recommendation) => void;
 }
-
-const CATEGORY_LABELS: Record<string, string> = {
-  overshirt: "Overshirt / Layer",
-  trousers: "Trousers / Bottoms",
-  shoes: "Shoes / Footwear",
-  jacket: "Jacket / Outerwear",
-  shirt: "Shirt / Top",
-  top: "Top",
-};
 
 export function RecommendationSlot({
   recommendation,
@@ -28,9 +21,7 @@ export function RecommendationSlot({
   error,
   onTryOn,
 }: RecommendationSlotProps) {
-  const categoryLabel =
-    CATEGORY_LABELS[recommendation.category.toLowerCase()] ??
-    recommendation.category;
+  const categoryLabel = getRecommendationCategoryLabel(recommendation.category);
 
   return (
     <div className="flex flex-col gap-5">
@@ -48,6 +39,14 @@ export function RecommendationSlot({
           ))}
           <Badge variant="outline">{recommendation.targetFit}</Badge>
         </div>
+        {recommendation.supportingQuote ? (
+          <blockquote className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm leading-relaxed text-neutral-600">
+            <p className="mb-1 text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-400">
+              From the review
+            </p>
+            <p>&ldquo;{recommendation.supportingQuote}&rdquo;</p>
+          </blockquote>
+        ) : null}
       </div>
 
       {/* Products */}
@@ -66,9 +65,13 @@ export function RecommendationSlot({
           {products.map((product, i) => (
             <div
               key={product.id}
-              style={{ animation: "fadeUp 0.4s ease-out both", animationDelay: `${i * 60}ms` }}
+              className="animate-fade-up"
+              style={{ "--animation-delay": `${i * 60}ms` } as CSSProperties}
             >
-              <ProductCard product={product} onTryOn={onTryOn} />
+              <ProductCard
+                product={product}
+                onTryOn={(selectedProduct) => onTryOn(selectedProduct, recommendation)}
+              />
             </div>
           ))}
         </div>

@@ -246,10 +246,7 @@ export default function StylistReviewPage() {
           )}
 
           {reviewComplete && pendingRecommendation ? (
-            <div
-              className="rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm"
-              style={{ animation: "fadeUp 0.5s ease-out both" }}
-            >
+            <div className="animate-fade-up rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm">
               <div className="flex flex-col gap-5">
                 <div className="flex flex-col gap-2">
                   <p className="text-xs font-medium uppercase tracking-widest text-neutral-400">
