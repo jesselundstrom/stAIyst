@@ -31,6 +31,15 @@ test.describe("critical user flows", () => {
     await completeRecommendationSetup(page);
 
     await expect(page.getByText("Reviewing your look", { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Your direction is clearer now." })
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "See recommended products" })
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: "See recommended products" }).click();
+
     await expect(page).toHaveURL(/\/recommendations$/);
     await expect(
       page.getByRole("heading", {
@@ -45,6 +54,8 @@ test.describe("critical user flows", () => {
 
   test("lets the user move from recommendations into try-on", async ({ page }) => {
     await completeRecommendationSetup(page);
+
+    await page.getByRole("button", { name: "See recommended products" }).click();
 
     await expect(page).toHaveURL(/\/recommendations$/);
 

@@ -32,6 +32,7 @@ export default function StylistReviewPage() {
   const [dialogue, setDialogue] = useState<DialogueTurn[] | null>(null);
   const [pendingRecommendation, setPendingRecommendation] =
     useState<RecommendationResponse | null>(null);
+  const [reviewComplete, setReviewComplete] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
@@ -47,10 +48,10 @@ export default function StylistReviewPage() {
       return;
     }
 
-    if (recommendations) {
+    if (recommendations && !pendingRecommendation) {
       router.replace("/recommendations");
     }
-  }, [hasHydrated, images.front, preferences, recommendations, router]);
+  }, [hasHydrated, images.front, preferences, recommendations, pendingRecommendation, router]);
 
   useEffect(() => {
     if (!hasHydrated || !images.front || !preferences || recommendations) {
@@ -65,6 +66,7 @@ export default function StylistReviewPage() {
       setError(null);
       setDialogue(null);
       setPendingRecommendation(null);
+      setReviewComplete(false);
 
       try {
         const res = await fetch("/api/recommend-dialogue", {
@@ -107,7 +109,7 @@ export default function StylistReviewPage() {
           }
 
           setRecommendations(data.recommendation);
-          router.replace("/recommendations");
+          setReviewComplete(true);
           return;
         }
 
@@ -147,6 +149,7 @@ export default function StylistReviewPage() {
   function handleRetry() {
     setDialogue(null);
     setPendingRecommendation(null);
+    setReviewComplete(false);
     setError(null);
     setLoading(true);
     setRetryCount((count) => count + 1);
@@ -156,6 +159,10 @@ export default function StylistReviewPage() {
     if (pendingRecommendation) {
       setRecommendations(pendingRecommendation);
     }
+    setReviewComplete(true);
+  }
+
+  function handleSeeProducts() {
     router.replace("/recommendations");
   }
 
@@ -201,32 +208,62 @@ export default function StylistReviewPage() {
             </div>
           </div>
         </div>
-      ) : dialogue ? (
-        <StyleDialogue turns={dialogue} onComplete={handleDialogueComplete} />
       ) : (
-        <div className="rounded-2xl border border-neutral-100 bg-white p-8 shadow-sm">
-          <div className="flex flex-col gap-5">
-            <div className="flex items-center gap-3">
-              <div className="h-2 w-2 animate-pulse rounded-full bg-neutral-900" />
-              <p className="text-sm font-medium text-neutral-700">Reviewing your look</p>
+        <div className="flex flex-col gap-6">
+          {dialogue ? (
+            <StyleDialogue turns={dialogue} onComplete={handleDialogueComplete} />
+          ) : (
+            <div className="rounded-2xl border border-neutral-100 bg-white p-8 shadow-sm">
+              <div className="flex flex-col gap-5">
+                <div className="flex items-center gap-3">
+                  <div className="h-2 w-2 animate-pulse rounded-full bg-neutral-900" />
+                  <p className="text-sm font-medium text-neutral-700">
+                    Reviewing your look
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="h-4 w-10/12 animate-pulse rounded bg-neutral-100" />
+                  <div className="h-4 w-8/12 animate-pulse rounded bg-neutral-100" />
+                  <div className="h-4 w-9/12 animate-pulse rounded bg-neutral-100" />
+                </div>
+
+                <p className="text-sm leading-relaxed text-neutral-500">
+                  Pulling together a refined direction before we show the final edit.
+                </p>
+
+                {!loading ? (
+                  <p className="text-xs italic text-neutral-400">
+                    Finalizing your recommendations.
+                  </p>
+                ) : null}
+              </div>
             </div>
+          )}
 
-            <div className="space-y-3">
-              <div className="h-4 w-10/12 animate-pulse rounded bg-neutral-100" />
-              <div className="h-4 w-8/12 animate-pulse rounded bg-neutral-100" />
-              <div className="h-4 w-9/12 animate-pulse rounded bg-neutral-100" />
+          {reviewComplete && pendingRecommendation ? (
+            <div className="rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm">
+              <div className="flex flex-col gap-5">
+                <div className="flex flex-col gap-2">
+                  <p className="text-xs font-medium uppercase tracking-widest text-neutral-400">
+                    Final direction
+                  </p>
+                  <h2 className="text-xl font-semibold tracking-tight text-neutral-900">
+                    Your direction is clearer now.
+                  </h2>
+                  <p className="text-sm leading-relaxed text-neutral-500">
+                    {pendingRecommendation.styleSummary}
+                  </p>
+                </div>
+
+                <div>
+                  <Button size="lg" onClick={handleSeeProducts}>
+                    See recommended products
+                  </Button>
+                </div>
+              </div>
             </div>
-
-            <p className="text-sm leading-relaxed text-neutral-500">
-              Pulling together a refined direction before we show the final edit.
-            </p>
-
-            {!loading ? (
-              <p className="text-xs italic text-neutral-400">
-                Finalizing your recommendations.
-              </p>
-            ) : null}
-          </div>
+          ) : null}
         </div>
       )}
     </PageShell>
