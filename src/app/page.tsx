@@ -10,10 +10,10 @@ export default function HomePage() {
           <p className="mb-4 text-xs font-medium uppercase tracking-widest text-neutral-400">
             AI-assisted styling
           </p>
-          <h1 className="mb-6 text-4xl font-semibold leading-tight tracking-tight text-neutral-900 md:text-5xl">
+          <h1 className="font-display mb-6 text-5xl font-medium leading-[1.1] tracking-tight text-neutral-900 md:text-6xl">
             A cleaner direction
             <br />
-            for your wardrobe.
+            <em>for your wardrobe.</em>
           </h1>
           <p className="mb-10 text-base leading-relaxed text-neutral-500">
             Upload a photo, tell us your style preferences, and receive targeted
